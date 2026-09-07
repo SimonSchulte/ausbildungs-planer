@@ -10,12 +10,19 @@ an Dritte.
 
 ## Was die App kann
 
-- **Jahresplan** nach Monaten gruppiert, mit Rolle, Thema, Ausbilder, Nachweisen und Material.
-- **Jeder Montag des Jahres ist sichtbar** – auch die, für die in der Mappe keine Zeile
-  steht. Ein Montag ohne Ausbildungsthema wird rot als Lücke markiert; über den Zähler
-  „x/52 Montage belegt“ lässt sich der Plan auf genau diese Lücken filtern.
+- **Wochenraster als echter Scheduler** (Eigenbau auf Basis des Angular CDK, kein
+  Fremd-Paket): eine Zeile je Kalenderwoche mit Kalenderwochen-Nummer und
+  Datumsspanne, sieben Spalten Montag bis Sonntag. Termine lassen sich damit nicht
+  nur auf den Diensttag legen, sondern auf jeden beliebigen Wochentag.
+- **Der reguläre Diensttag ist einstellbar** (Werkzeugleiste → Kalender-Symbol),
+  Standard ist Montag. Beim Öffnen einer Mappe (und bei „Neuer Plan“) legt die App
+  für jeden Diensttag ohne Eintrag automatisch eine leere Zeile an – programmatisch
+  abgesichert, dass kein Diensttag im Jahresplan fehlt. Die Zeilen werden beim
+  Speichern mit in die Excel geschrieben. Ein Diensttag ohne Ausbildungsthema wird
+  rot als Lücke markiert; über den Zähler „x/52 Montage belegt“ (bzw. der
+  gewählte Wochentag) lässt sich der Plan auf genau diese Lücken filtern.
 - **Feiertage** werden von [feiertage-api.de](https://feiertage-api.de/) geladen und im
-  Plan angezeigt. Ein Montag, der auf einen Feiertag fällt, gilt nicht als Lücke.
+  Plan angezeigt. Ein Diensttag, der auf einen Feiertag fällt, gilt nicht als Lücke.
 - **Termine verschieben** per Drag & Drop – zwei Termine tauschen dabei ihr Datum.
 - **Umbenennen und bearbeiten** über einen Dialog (Datum, Rolle, Thema, Ausbilder,
   Nachweise, Material, Anforderungen, HGM-4-Felder).
@@ -48,10 +55,10 @@ reproduzierbar; die Mappe bleibt dadurch frei von generierten Zeilen.
 Die Persistenz ist hinter `WorkbookStorage` (`src/app/storage/`) abstrahiert. Aktuell
 gibt es zwei Implementierungen:
 
-| Quelle | Lesen | Schreiben |
-|---|---|---|
+| Quelle                 | Lesen                           | Schreiben                                                                      |
+| ---------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
 | **Lokale Excel-Datei** | Datei-Dialog oder Datei-Auswahl | direkt in dieselbe Datei (File System Access API, Chrome/Edge), sonst Download |
-| **NextCloud (WebDAV)** | `GET` auf den Dateipfad | `PUT` auf denselben Pfad |
+| **NextCloud (WebDAV)** | `GET` auf den Dateipfad         | `PUT` auf denselben Pfad                                                       |
 
 NextCloud unterstützt zwei Zugänge: Benutzerkonto mit App-Passwort
 (`/remote.php/dav/files/<benutzer>/<pfad>`) oder öffentlicher Freigabelink
@@ -93,7 +100,7 @@ npm run format     # Prettier über src/
 ## Deployment (GitHub Pages)
 
 Ein Push auf `main` baut und veröffentlicht die App über
-`.github/workflows/deploy.yml`. Voraussetzung: unter *Settings → Pages* muss als
+`.github/workflows/deploy.yml`. Voraussetzung: unter _Settings → Pages_ muss als
 Quelle **GitHub Actions** eingestellt sein.
 
 Alternativ manuell aus dem Arbeitsverzeichnis:

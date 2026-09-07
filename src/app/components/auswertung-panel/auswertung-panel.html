@@ -21,29 +21,29 @@
 
 <section class="bereich">
   <h3>
-    Montage im Jahr
-    <span class="quote" [class.gut]="a.montage.quote >= 1">
-      {{ a.montage.quote | percent: '1.0-0' }}
+    {{ diensttagLabel() }}e im Jahr
+    <span class="quote" [class.gut]="a.diensttage.quote >= 1">
+      {{ a.diensttage.quote | percent: '1.0-0' }}
     </span>
   </h3>
   <p class="nebenhinweis">
-    {{ a.montage.belegt }} von {{ a.montage.montage }} Montagen belegt, davon
-    {{ a.montage.feiertage }} Feiertag(e).
+    {{ a.diensttage.belegt }} von {{ a.diensttage.diensttage }} {{ diensttagLabel() }}en belegt,
+    davon {{ a.diensttage.feiertage }} Feiertag(e).
   </p>
-  @if (a.montage.luecken.length) {
+  @if (a.diensttage.luecken.length) {
     <p class="warnhinweis">
       <mat-icon inline>error_outline</mat-icon>
-      {{ a.montage.luecken.length }} Montag(e) ohne Ausbildung:
+      {{ a.diensttage.luecken.length }} {{ diensttagLabel() }}(e) ohne Ausbildung:
     </p>
     <div class="marken">
-      @for (slot of a.montage.luecken; track slot.datum) {
-        <span class="marke rot">{{ formatiere(slot.datum) }}</span>
+      @for (datum of a.diensttage.luecken; track datum) {
+        <span class="marke rot">{{ formatiere(datum) }}</span>
       }
     </div>
-  } @else if (a.montage.montage) {
+  } @else if (a.diensttage.diensttage) {
     <p class="gutmeldung">
       <mat-icon inline>check_circle</mat-icon>
-      Jeder Montag des Jahres ist belegt oder ein Feiertag.
+      Jeder {{ diensttagLabel() }} des Jahres ist belegt oder ein Feiertag.
     </p>
   }
 </section>

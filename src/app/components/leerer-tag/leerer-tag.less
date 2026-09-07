@@ -1,68 +1,36 @@
 :host {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  min-height: 38px;
-  padding: 0 var(--space-sm) 0 calc(var(--space-sm) + 6px);
-  position: relative;
-  border: 1px dashed var(--border-light);
-  border-radius: var(--radius-md);
-  background: var(--surface-tertiary);
+  gap: 4px;
+  min-height: 30px;
+  padding: 2px 4px 2px 6px;
+  border-radius: var(--radius-sm);
   color: var(--text-disabled);
-  font-size: 0.8125rem;
-  overflow: hidden;
-}
-
-:host::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  background: var(--border-medium);
+  font-size: 0.75rem;
 }
 
 :host(.feiertag) {
   background: var(--feiertag-bg);
-  border-color: var(--feiertag-rand);
   color: var(--feiertag-text);
-
-  &::before {
-    background: var(--feiertag-rand);
-  }
 }
 
-/* Die rote Lücke: ein Montag ohne Ausbildung und ohne Feiertag. */
+/* Die rote Lücke: ein Diensttag ohne Ausbildung und ohne Feiertag. */
 :host(.luecke) {
   background: var(--luecke-bg);
-  border: 1px solid var(--luecke-rand);
   color: var(--luecke-text);
   font-weight: 500;
-
-  &::before {
-    background: var(--luecke-rand);
-  }
 }
 
-.tag {
-  font-weight: 600;
+:host(.ausserhalb) {
+  opacity: 0.35;
 }
 
-.datum {
+.tag-nummer {
   font-variant-numeric: tabular-nums;
 }
 
-.beschriftung {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-
-  mat-icon {
-    font-size: 16px;
-  }
-
-  &.leer {
-    font-style: italic;
-  }
+.symbol {
+  font-size: 15px;
 }
 
 .fueller {
@@ -70,10 +38,22 @@
 }
 
 .anlegen {
-  --mat-icon-button-state-layer-size: 30px;
+  --mat-icon-button-state-layer-size: 22px;
 
-  opacity: 0.5;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  opacity: 0;
   transition: opacity 120ms ease;
+
+  ::ng-deep .mat-mdc-button-touch-target {
+    width: 22px;
+    height: 22px;
+  }
+
+  mat-icon {
+    font-size: 16px;
+  }
 }
 
 :host(:hover) .anlegen,

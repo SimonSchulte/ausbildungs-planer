@@ -1,20 +1,11 @@
 @let s = slot();
 
-<span class="tag">{{ s.tag }}</span>
-<span class="datum">{{ datumText() }}</span>
+<span class="tag-nummer">{{ tagNummer() }}</span>
 
 @if (s.feiertag) {
-  <span class="beschriftung">
-    <mat-icon inline>flag</mat-icon>
-    Feiertag: {{ s.feiertag }}
-  </span>
+  <mat-icon inline class="symbol" [matTooltip]="'Feiertag: ' + s.feiertag">flag</mat-icon>
 } @else if (s.luecke) {
-  <span class="beschriftung" matTooltip="An diesem Montag ist keine Ausbildung geplant">
-    <mat-icon inline>error_outline</mat-icon>
-    Ausbildung fehlt
-  </span>
-} @else {
-  <span class="beschriftung leer">Kein Eintrag</span>
+  <mat-icon inline class="symbol" matTooltip="Ausbildung fehlt">error_outline</mat-icon>
 }
 
 <span class="fueller"></span>

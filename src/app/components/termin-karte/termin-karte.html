@@ -1,7 +1,7 @@
 <div class="rolle-streifen" [style.background]="farbe()" aria-hidden="true"></div>
 
 <div class="kopf">
-  @if (termin().datum) {
+  @if (!kompakt() && termin().datum) {
     <div class="datum">
       <span class="tag">{{ tagText() }}</span>
       <span class="tagdatum">{{ datumText() }}</span>
@@ -11,12 +11,22 @@
     <span class="rolle-chip" [style.background]="farbe()">{{ termin().kategorie }}</span>
   }
   @if (feiertag()) {
-    <span class="feiertag-marke"> <mat-icon inline>flag</mat-icon>{{ feiertag() }} </span>
+    @if (kompakt()) {
+      <mat-icon inline class="feiertag-symbol" [matTooltip]="'Feiertag: ' + feiertag()"
+        >flag</mat-icon
+      >
+    } @else {
+      <span class="feiertag-marke"> <mat-icon inline>flag</mat-icon>{{ feiertag() }} </span>
+    }
   }
   @if (termin().hinweis) {
-    <span class="hinweis" [matTooltip]="termin().hinweis">
-      <mat-icon inline>event_note</mat-icon>{{ termin().hinweis }}
-    </span>
+    @if (kompakt()) {
+      <mat-icon inline class="hinweis-symbol" [matTooltip]="termin().hinweis">event_note</mat-icon>
+    } @else {
+      <span class="hinweis" [matTooltip]="termin().hinweis">
+        <mat-icon inline>event_note</mat-icon>{{ termin().hinweis }}
+      </span>
+    }
   }
   <span class="fueller"></span>
   <button
@@ -32,13 +42,19 @@
 
 <div class="titel">
   @if (luecke()) {
-    <span class="luecke-text"> <mat-icon inline>error_outline</mat-icon>Ausbildung fehlt </span>
+    <span class="luecke-text" [matTooltip]="kompakt() ? 'Ausbildung fehlt' : ''">
+      <mat-icon inline>error_outline</mat-icon>{{ kompakt() ? 'fehlt' : 'Ausbildung fehlt' }}
+    </span>
   } @else if (istFrei()) {
-    <span class="platzhalter">Freier Ausbildungsslot</span>
+    <span class="platzhalter" [matTooltip]="kompakt() ? 'Freier Ausbildungsslot' : ''">
+      {{ kompakt() ? 'frei' : 'Freier Ausbildungsslot' }}
+    </span>
   } @else if (termin().thema) {
     {{ termin().thema }}
   } @else {
-    <span class="platzhalter">Kein Ausbildungsthema</span>
+    <span class="platzhalter" [matTooltip]="kompakt() ? 'Kein Ausbildungsthema' : ''">
+      {{ kompakt() ? '–' : 'Kein Ausbildungsthema' }}
+    </span>
   }
 </div>
 

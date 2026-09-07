@@ -7,8 +7,7 @@ import {
   Termin,
   terminArt,
 } from '../models/plan.model';
-import { PlanSlot } from './plan-raster';
-import { MONATSNAMEN, monatIndex } from '../utils/datum';
+import { MONATSNAMEN, Wochentag, monatIndex, wochentageImJahr } from '../utils/datum';
 
 export interface KategorieZeile {
   kategorie: Kategorie | '';
@@ -38,16 +37,17 @@ export interface NachweisZeile {
   termine: Termin[];
 }
 
-export interface MontagsAbdeckung {
-  montage: number;
+export interface DiensttagAbdeckung {
+  diensttage: number;
   belegt: number;
   feiertage: number;
-  luecken: PlanSlot[];
+  /** ISO-Daten der Diensttage ohne Ausbildungsthema und ohne Feiertag. */
+  luecken: string[];
   quote: number;
 }
 
 export interface Auswertung {
-  montage: MontagsAbdeckung;
+  diensttage: DiensttagAbdeckung;
   gesamt: number;
   ausbildungen: number;
   ereignisse: number;
@@ -65,7 +65,11 @@ export interface Auswertung {
 
 const KATEGORIE_SPALTEN: ReadonlyArray<Kategorie | ''> = [...KATEGORIEN, ''];
 
-export function werteAus(dokument: PlanDocument, raster: readonly PlanSlot[] = []): Auswertung {
+export function werteAus(
+  dokument: PlanDocument,
+  diensttag: Wochentag,
+  feiertage: ReadonlyMap<string, string>,
+): Auswertung {
   const termine = dokument.termine;
   const ausbildungen = termine.filter((t) => terminArt(t) === 'ausbildung');
   const ereignisse = termine.filter((t) => terminArt(t) === 'ereignis');
@@ -79,7 +83,7 @@ export function werteAus(dokument: PlanDocument, raster: readonly PlanSlot[] = [
   const abgedeckt = pflicht.filter((z) => z.geplant.length > 0);
 
   return {
-    montage: werteMontageAus(raster),
+    diensttage: werteDiensttageAus(dokument.jahr, diensttag, termine, feiertage),
     gesamt: termine.length,
     ausbildungen: ausbildungen.length,
     ereignisse: ereignisse.length,
@@ -100,16 +104,24 @@ export function werteAus(dokument: PlanDocument, raster: readonly PlanSlot[] = [
   };
 }
 
-function werteMontageAus(raster: readonly PlanSlot[]): MontagsAbdeckung {
-  const montage = raster.filter((s) => s.istMontag);
-  const luecken = montage.filter((s) => s.luecke);
-  const feiertage = montage.filter((s) => s.feiertag !== null);
+function werteDiensttageAus(
+  jahr: number,
+  diensttag: Wochentag,
+  termine: readonly Termin[],
+  feiertage: ReadonlyMap<string, string>,
+): DiensttagAbdeckung {
+  const mitThema = new Set(
+    termine.filter((t) => t.datum && t.thema.trim()).map((t) => t.datum as string),
+  );
+  const tage = wochentageImJahr(jahr, diensttag);
+  const feiertagsTage = tage.filter((d) => feiertage.has(d));
+  const luecken = tage.filter((d) => !feiertage.has(d) && !mitThema.has(d));
   return {
-    montage: montage.length,
-    belegt: montage.length - luecken.length,
-    feiertage: feiertage.length,
+    diensttage: tage.length,
+    belegt: tage.length - luecken.length,
+    feiertage: feiertagsTage.length,
     luecken,
-    quote: montage.length ? (montage.length - luecken.length) / montage.length : 1,
+    quote: tage.length ? (tage.length - luecken.length) / tage.length : 1,
   };
 }
 

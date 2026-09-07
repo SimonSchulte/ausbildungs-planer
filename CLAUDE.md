@@ -32,7 +32,7 @@ einer bestehenden Excel-Arbeitsmappe ab und ergänzt Drag & Drop, ein aufgeräum
 Ideen-Backlog, Auswertungen und Querverweise auf den KatS-Ausbildungsplan.
 Vollständig clientseitig – kein Backend, keine Anmeldung. Läuft als statische Seite
 auf GitHub Pages. Fachsprache und Oberfläche sind deutsch; Bezeichner im Code
-ebenfalls (siehe *Konventionen*).
+ebenfalls (siehe _Konventionen_).
 
 ## Architektur
 
@@ -44,7 +44,8 @@ src/app/
   data/kategorien.ts       Rollen-Normalisierung + Farben
   data/bundeslaender.ts    Bundesland-Codes der feiertage-api
   data/feiertage-berechnet.ts  Osterformel + Feiertagsregeln (Rückfallebene)
-  utils/datum.ts           ISO ↔ Excel-Serial, Wochentag, Montage eines Jahres
+  data/wochentage.ts       Diensttag-Auswahlliste + Standardwert (Montag)
+  utils/datum.ts           ISO ↔ Excel-Serial, Wochentag, Kalenderwochen, KW-Nummer
   storage/                 Persistenz-Abstraktion (WorkbookStorage) + Implementierungen
   services/
     excel-schema.ts        Spaltenüberschriften ↔ Feldnamen, Kreuzchen-Erkennung
@@ -53,7 +54,8 @@ src/app/
     plan-store.ts          Zustand (Signals) + Undo/Redo
     workbook.service.ts    Bindeglied Storage ↔ Store
     feiertage.service.ts   Feiertage: API → Cache → Berechnung
-    plan-raster.ts         Jahresraster aus Montagen, Terminen und Feiertagen
+    diensttag.service.ts   Regulärer Ausbildungstag (Browser-Einstellung, Standard Mo)
+    plan-raster.ts         Wochenraster aus Kalenderwochen, Terminen und Feiertagen
     auswertung.ts          Statistiken (reine Funktionen)
   components/              Karte, Dialoge, Seitenbereiche
   pages/jahresplan/        Hauptansicht (Toolbar, Plan, Seitenleiste)
@@ -74,13 +76,52 @@ src/app/
   Signal-Zustand vorbeischreiben.
 - **Der Excel-Code wird dynamisch importiert** (`await import('./excel-lesen')`),
   weil SheetJS sonst das Startbundle dominiert.
-- **Das Jahresraster ist abgeleitet, nicht gespeichert.** `baueRaster` mischt alle
-  Montage des Jahres, alle Termine der Mappe und alle Feiertage zu `PlanSlot`s.
-  Dadurch ist jeder Montag sichtbar, ohne dass leere Zeilen in die Excel wandern.
-  Ein `PlanSlot` ist eine Lücke, wenn er Montag ist, kein Feiertag und kein Thema
-  hat – genau das wird rot markiert.
+- **Der Diensttag ist konfigurierbar, nicht hartkodiert.** `DiensttagService` hält
+  den regulären Ausbildungsabend (Standard Montag) als Browser-Einstellung – die
+  Excel-Mappe kennt dafür kein Feld, jede Einheit tagt aber nicht zwingend
+  montags. Sämtliche früher Montag-spezifische Logik (`istMontag`, `montageImJahr`
+  …) ist auf einen Parameter `Wochentag` generalisiert (`wochentageImJahr`,
+  `PlanSlot.istDiensttag`).
+- **Jeder Diensttag bekommt eine echte Zeile.** `PlanStore.ergaenzeFehlendeDiensttage`
+  legt beim Laden (und bei „Neuer Plan“) für jeden Diensttag ohne Eintrag einen
+  leeren `Termin` an. Das ist bewusst keine reine Anzeigehilfe: Die Zeilen landen
+  in `store.termine` und damit beim Speichern auch in der Excel – so ist
+  programmatisch sichergestellt, dass kein Diensttag im Jahr fehlt, ohne dass
+  jemand von Hand 52 Zeilen pflegen muss. Wiederholte Aufrufe sind idempotent
+  (Prüfung über `Set` der vorhandenen Daten). Beim Wechsel des Diensttags in der
+  Werkzeugleiste läuft das sofort erneut, für den neu gewählten Wochentag.
+- **Der Wochenraster ist trotzdem abgeleitet, nicht gespeichert.** `baueWochenraster`
+  mischt alle Kalenderwochen des Jahres, alle Termine der Mappe und alle Feiertage
+  zu `WochenZeile`s mit je 7 `PlanSlot`s (Montag–Sonntag) – anders als die Excel
+  (die nur Diensttage als Zeilen führt) zeigt die Ansicht **jeden** Tag, damit
+  Wochen als Ganzes erkennbar sind und sich Termine auch auf andere Wochentage
+  legen lassen. Rand-Tage, die ins Nachbarjahr hineinragen (falls der 1. Januar
+  kein Montag ist), tragen `imJahr: false` und sind nicht interaktiv – nur zur
+  Orientierung sichtbar, kein Drop-Ziel, zählen nicht in Statistiken mit. Ein
+  `PlanSlot` ist eine Lücke, wenn er Diensttag ist, kein Feiertag und kein Thema
+  hat – genau das wird rot markiert, egal ob der Slot ein synthetischer oder ein
+  echter, leerer Termin ist.
 - **Feiertage sind abgeleitet und wandern nicht in die Mappe.** Sie sind aus Jahr
-  und Bundesland reproduzierbar; die Mappe bleibt damit frei von generierten Zeilen.
+  und Bundesland reproduzierbar; die Mappe bleibt damit frei von generierten
+  Zeilen. Das gilt nur für Feiertage – die Diensttags-Zeilen selbst sind gewollt
+  echte Daten (siehe oben).
+
+### Wochenraster-Ansicht (Eigenbau-Scheduler)
+
+`jahresplan.html` rendert `store` und `plan-raster` nicht mehr als Monatsliste,
+sondern als ein **einziges CSS-Grid** über das ganze Jahr: eine KW-Spalte plus
+sieben Wochentagsspalten (Mo–So), eine Zeile je Kalenderwoche. Monatswechsel
+erscheinen als schmale Markerzeile (`istMonatswechsel`), Wochentags- und
+KW-Kopf sind `position: sticky`. Bewusst kein Fremd-Scheduler (angular-calendar,
+FullCalendar, …) – siehe die Bewertung im Session-Verlauf: keine der geprüften
+Bibliotheken passte zu zoneless + zwei Diensttag-Zeilen pro Woche, ohne das
+bestehende CDK-Drag-&-Drop komplett umzubauen.
+
+Jede Zelle (`.tag-zelle`) zeigt entweder gestapelte `app-termin-karte[kompakt]`
+(eine `cdkDropList` je Termin, wie zuvor) oder – wenn leer – `app-leerer-tag`.
+Der `kompakt`-Modus von `TerminKarte` blendet Datum/Tag aus (die Zellposition
+trägt das schon) und kürzt Platzhaltertexte („Ausbildung fehlt“ → „fehlt“ +
+Tooltip), damit eine ~90–140px schmale Spalte reicht.
 
 ### Drag & Drop (Angular CDK)
 
@@ -89,15 +130,15 @@ eine **eigene** `cdkDropList` mit genau einem Element – nur so ist „auf dies
 ziehen“ eindeutig. Die Quelle wird nicht über Container ermittelt, sondern über
 `termin.datum === null`:
 
-| Zug | Wirkung |
-|---|---|
-| Termin → Termin | beide tauschen ihr Datum (`tauscheDatum`) |
-| Termin → leerer Tag | Termin bekommt das Datum (`verschiebeAufDatum`) |
-| Idee → leerer Tag | Idee wird eingeplant (`ausBacklogAufDatum`) |
+| Zug                    | Wirkung                                                            |
+| ---------------------- | ------------------------------------------------------------------ |
+| Termin → Termin        | beide tauschen ihr Datum (`tauscheDatum`)                          |
+| Termin → leerer Tag    | Termin bekommt das Datum (`verschiebeAufDatum`)                    |
+| Idee → leerer Tag      | Idee wird eingeplant (`ausBacklogAufDatum`)                        |
 | Idee → belegter Termin | Idee übernimmt das Datum, der bisherige Termin wandert ins Backlog |
-| Idee → freier Slot | Slot wird befüllt, ein vorhandener Hinweis bleibt am Datum |
-| Termin → Backlog | Termin verliert sein Datum (`zuBacklog`) |
-| Idee → Idee | Umsortieren (nur ungefiltert) |
+| Idee → freier Slot     | Slot wird befüllt, ein vorhandener Hinweis bleibt am Datum         |
+| Termin → Backlog       | Termin verliert sein Datum (`zuBacklog`)                           |
+| Idee → Idee            | Umsortieren (nur ungefiltert)                                      |
 
 ### Feiertage
 
@@ -144,8 +185,8 @@ Datumszellen werden als echte Excel-Seriennummern geschrieben (`isoZuSerial`), n
 ## Tests
 
 Vitest, jsdom. Schwerpunkt liegt auf dem Excel-Rundlauf (`excel-lesen.spec.ts`),
-den Plan-Operationen (`plan-store.spec.ts`), dem Jahresraster (`plan-raster.spec.ts`)
-und den Feiertagen (`feiertage-berechnet.spec.ts`).
+den Plan-Operationen (`plan-store.spec.ts`), dem Wochenraster (`plan-raster.spec.ts`),
+den Kalenderfunktionen (`datum.spec.ts`) und den Feiertagen (`feiertage-berechnet.spec.ts`).
 
 **Keine echten Planungsdaten ins Repository.** Testmappen werden im Test selbst mit
 `XLSX.utils.aoa_to_sheet` erzeugt; die Fixture in `excel-lesen.spec.ts` bildet die

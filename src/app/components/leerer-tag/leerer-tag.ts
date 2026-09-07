@@ -6,11 +6,10 @@ import { PlanSlot } from '../../services/plan-raster';
 import { formatiereDatum } from '../../utils/datum';
 
 /**
- * Ein Tag ohne Eintrag in der Mappe.
+ * Eine Wochenraster-Zelle ohne Eintrag – die meisten Zellen eines Jahres.
  *
- * Bewusst schmaler als eine Termin-Karte: Ein Jahr hat viele davon, und sie
- * sollen den Plan nicht dominieren – außer sie sind eine Lücke, dann fallen sie
- * rot auf.
+ * Bewusst schmal und ruhig: nur die Tagesnummer, ein Symbol bei Feiertag oder
+ * Lücke, und ein "+"-Knopf, der erst beim Hovern erscheint.
  */
 @Component({
   selector: 'app-leerer-tag',
@@ -21,11 +20,13 @@ import { formatiereDatum } from '../../utils/datum';
   host: {
     '[class.luecke]': 'slot().luecke',
     '[class.feiertag]': 'slot().feiertag !== null',
+    '[class.ausserhalb]': '!slot().imJahr',
   },
 })
 export class LeererTag {
   readonly slot = input.required<PlanSlot>();
   readonly anlegen = output<void>();
 
+  readonly tagNummer = computed(() => Number(this.slot().datum.slice(8, 10)));
   readonly datumText = computed(() => formatiereDatum(this.slot().datum));
 }

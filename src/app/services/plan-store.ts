@@ -7,13 +7,8 @@ import {
   leeresDocument,
   neueId,
 } from '../models/plan.model';
-import { MONATSNAMEN, monatIndex } from '../utils/datum';
-
-export interface MonatsGruppe {
-  index: number;
-  name: string;
-  termine: Termin[];
-}
+import { STANDARD_DIENSTTAG } from '../data/wochentage';
+import { Wochentag, wochentageImJahr } from '../utils/datum';
 
 const MAX_HISTORIE = 100;
 
@@ -41,27 +36,7 @@ export class PlanStore {
   readonly kannRueckgaengig = computed(() => this.historie().length > 0);
   readonly kannWiederholen = computed(() => this.zukunft().length > 0);
 
-  /** Termine nach Monat gruppiert – Grundlage der Jahresplan-Ansicht. */
-  readonly monate = computed<MonatsGruppe[]>(() => {
-    const gruppen = new Map<number, Termin[]>();
-    for (const termin of this.sortierteTermine()) {
-      const index = termin.datum ? monatIndex(termin.datum) : 12;
-      (gruppen.get(index) ?? gruppen.set(index, []).get(index)!).push(termin);
-    }
-    return [...gruppen.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([index, termine]) => ({
-        index,
-        name: MONATSNAMEN[index] ?? 'Ohne Datum',
-        termine,
-      }));
-  });
-
   readonly katsThemaNachId = computed(() => new Map(this.katsThemen().map((t) => [t.id, t])));
-
-  private sortierteTermine(): Termin[] {
-    return [...this.termine()].sort((a, b) => (a.datum ?? '').localeCompare(b.datum ?? ''));
-  }
 
   terminNachId(id: string): Termin | undefined {
     return this.termine().find((t) => t.id === id) ?? this.backlog().find((t) => t.id === id);
@@ -105,6 +80,27 @@ export class PlanStore {
         : { ...d, backlog: [termin, ...d.backlog] },
     );
     return termin.id;
+  }
+
+  /**
+   * Legt für jeden Diensttag des Jahres eine Zeile an, sofern noch keine existiert.
+   *
+   * Damit steht das Diensttags-Gerüst auch in der Excel und nicht nur in der Ansicht
+   * – ein vergessener Dienstabend fällt so schon in der Mappe auf. Läuft nach dem
+   * Laden automatisch und ist wiederholbar, ohne Zeilen zu verdoppeln. Der Diensttag
+   * ist konfigurierbar (Standard Montag), nicht jede Einheit tagt montags.
+   */
+  ergaenzeFehlendeDiensttage(diensttag: Wochentag = STANDARD_DIENSTTAG): number {
+    const belegt = new Set(this.termine().map((t) => t.datum));
+    const fehlend = wochentageImJahr(this.jahr(), diensttag).filter((datum) => !belegt.has(datum));
+    if (!fehlend.length) {
+      return 0;
+    }
+    this.mutiere((d) => ({
+      ...d,
+      termine: [...d.termine, ...fehlend.map((datum) => leererTermin(datum))],
+    }));
+    return fehlend.length;
   }
 
   /** Zieht einen geplanten Termin auf ein bisher unbelegtes Datum. */

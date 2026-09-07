@@ -1,6 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { diensttagName } from '../data/wochentage';
 import { PlanDocument } from '../models/plan.model';
 import { StorageFehler, WorkbookStorage } from '../storage/workbook-storage';
+import { DiensttagService } from './diensttag.service';
 import { PlanStore } from './plan-store';
 
 export interface LadeErgebnis {
@@ -16,6 +18,7 @@ export interface LadeErgebnis {
 @Injectable({ providedIn: 'root' })
 export class WorkbookService {
   private readonly store = inject(PlanStore);
+  private readonly diensttag = inject(DiensttagService);
 
   private readonly aktivesZiel = signal<WorkbookStorage | null>(null);
   readonly ziel = this.aktivesZiel.asReadonly();
@@ -29,7 +32,15 @@ export class WorkbookService {
       const { dokument, meldungen } = leseArbeitsmappe(inhalt.daten);
       this.store.setzeDokument(dokument);
       this.aktivesZiel.set(storage);
-      return { meldungen };
+      const ergaenzt = this.store.ergaenzeFehlendeDiensttage(this.diensttag.wochentag());
+      return {
+        meldungen: ergaenzt
+          ? [
+              ...meldungen,
+              `${ergaenzt} fehlende(r) ${diensttagName(this.diensttag.wochentag())} als Zeilen ergänzt.`,
+            ]
+          : meldungen,
+      };
     } finally {
       this.beschaeftigt.set(false);
     }
@@ -81,6 +92,7 @@ export class WorkbookService {
   neuesDokument(dokument: PlanDocument): void {
     this.store.setzeDokument(dokument);
     this.aktivesZiel.set(null);
+    this.store.ergaenzeFehlendeDiensttage(this.diensttag.wochentag());
   }
 
   private dateiname(): string {
