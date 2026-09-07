@@ -33,14 +33,19 @@
     <mat-icon>redo</mat-icon>
   </button>
 
-  <button matButton (click)="oeffnen()">
+  <button matButton (click)="oeffnen()" matTooltip="Arbeitsmappe öffnen">
     <mat-icon>folder_open</mat-icon>
-    Öffnen
+    <span class="knopf-text">Öffnen</span>
   </button>
 
-  <button matButton="filled" [disabled]="!store.hatDaten()" (click)="speichern()">
+  <button
+    matButton="filled"
+    [disabled]="!store.hatDaten()"
+    (click)="speichern()"
+    matTooltip="Speichern"
+  >
     <mat-icon>save</mat-icon>
-    Speichern
+    <span class="knopf-text">Speichern</span>
   </button>
 
   <button matIconButton [matMenuTriggerFor]="mehrMenue" aria-label="Weitere Aktionen">
@@ -114,7 +119,7 @@
   </div>
 } @else {
   <div class="arbeitsflaeche" cdkDropListGroup>
-    <section class="plan">
+    <section class="plan" [hidden]="mobilAnsicht() !== 'plan'">
       <header class="plan-kopf">
         <h2>{{ store.dokument().titel }}</h2>
 
@@ -165,7 +170,7 @@
         </label>
         <button matButton="tonal" (click)="neuerTermin()">
           <mat-icon>add</mat-icon>
-          Termin
+          <span class="knopf-text">Termin</span>
         </button>
       </header>
 
@@ -260,7 +265,7 @@
       </div>
     </section>
 
-    <aside class="seitenleiste">
+    <aside class="seitenleiste" [hidden]="mobilAnsicht() === 'plan'">
       <mat-tab-group class="reiter" [preserveContent]="true">
         <mat-tab>
           <ng-template mat-tab-label>
@@ -287,4 +292,18 @@
       </mat-tab-group>
     </aside>
   </div>
+
+  <nav class="mobil-nav">
+    <button [class.aktiv]="mobilAnsicht() === 'plan'" (click)="mobilAnsicht.set('plan')">
+      <mat-icon>calendar_view_week</mat-icon>
+      Wochenplan
+    </button>
+    <button [class.aktiv]="mobilAnsicht() === 'liste'" (click)="mobilAnsicht.set('liste')">
+      <mat-icon>lightbulb</mat-icon>
+      Ideen &amp; mehr
+      @if (store.backlog().length) {
+        <span class="mobil-nav-zahl">{{ store.backlog().length }}</span>
+      }
+    </button>
+  </nav>
 }

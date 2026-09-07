@@ -123,6 +123,19 @@ Der `kompakt`-Modus von `TerminKarte` blendet Datum/Tag aus (die Zellposition
 trägt das schon) und kürzt Platzhaltertexte („Ausbildung fehlt“ → „fehlt“ +
 Tooltip), damit eine ~90–140px schmale Spalte reicht.
 
+**Mobil (`@media (max-width: 780px)` in `jahresplan.less`):** Plan und
+Seitenleiste passen nicht mehr nebeneinander, deshalb zeigt `Jahresplan` nur
+eine der beiden Ansichten – gesteuert über das Signal `mobilAnsicht` (`'plan'
+| 'liste'`) und `[hidden]` auf `.plan`/`.seitenleiste`. Eine neue `.mobil-nav`
+(nur per Media Query sichtbar) schaltet um. Wichtige Falle dabei: `[hidden]`
+hat dieselbe CSS-Spezifität wie eine einzelne Klasse – `.plan { display: flex
+}` würde das Attribut sonst überschreiben. Die Regel `.plan[hidden],
+.seitenleiste[hidden] { display: none }` (zwei Selektoren = höhere Spezifität)
+steht deshalb **innerhalb** der Media Query, nicht global, sonst bliebe die
+Seitenleiste auch auf Desktop-Breite unsichtbar. Das Wochenraster selbst wird
+auf Mobil nicht umgebaut, sondern bleibt horizontal scrollbar
+(`.raster-bereich { overflow: auto }`) – Kompromiss, kein Tages-Agenda-Ansicht.
+
 ### Drag & Drop (Angular CDK)
 
 `cdkDropListGroup` umschließt Plan und Seitenleiste. Jede Termin-Karte im Plan ist
