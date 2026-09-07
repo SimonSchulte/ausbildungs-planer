@@ -10,15 +10,19 @@ an Dritte.
 
 ## Was die App kann
 
-- **Jahresplan** nach Monaten gruppiert, mit Rolle, Thema, Ausbilder, Nachweisen und Material.
-- **Jeder Montag des Jahres bekommt eine Zeile.** Beim Öffnen einer Mappe (und bei
-  „Neuer Plan“) legt die App für jeden Montag ohne Eintrag automatisch eine leere
-  Zeile an – programmatisch abgesichert, dass kein Montag im Jahresplan fehlt. Die
-  Zeilen werden beim Speichern mit in die Excel geschrieben. Ein Montag ohne
-  Ausbildungsthema wird rot als Lücke markiert; über den Zähler
-  „x/52 Montage belegt“ lässt sich der Plan auf genau diese Lücken filtern.
+- **Wochenraster als echter Scheduler** (Eigenbau auf Basis des Angular CDK, kein
+  Fremd-Paket): eine Zeile je Kalenderwoche mit Kalenderwochen-Nummer und
+  Datumsspanne, sieben Spalten Montag bis Sonntag. Termine lassen sich damit nicht
+  nur auf den Diensttag legen, sondern auf jeden beliebigen Wochentag.
+- **Der reguläre Diensttag ist einstellbar** (Werkzeugleiste → Kalender-Symbol),
+  Standard ist Montag. Beim Öffnen einer Mappe (und bei „Neuer Plan“) legt die App
+  für jeden Diensttag ohne Eintrag automatisch eine leere Zeile an – programmatisch
+  abgesichert, dass kein Diensttag im Jahresplan fehlt. Die Zeilen werden beim
+  Speichern mit in die Excel geschrieben. Ein Diensttag ohne Ausbildungsthema wird
+  rot als Lücke markiert; über den Zähler „x/52 Montage belegt“ (bzw. der
+  gewählte Wochentag) lässt sich der Plan auf genau diese Lücken filtern.
 - **Feiertage** werden von [feiertage-api.de](https://feiertage-api.de/) geladen und im
-  Plan angezeigt. Ein Montag, der auf einen Feiertag fällt, gilt nicht als Lücke.
+  Plan angezeigt. Ein Diensttag, der auf einen Feiertag fällt, gilt nicht als Lücke.
 - **Termine verschieben** per Drag & Drop – zwei Termine tauschen dabei ihr Datum.
 - **Umbenennen und bearbeiten** über einen Dialog (Datum, Rolle, Thema, Ausbilder,
   Nachweise, Material, Anforderungen, HGM-4-Felder).

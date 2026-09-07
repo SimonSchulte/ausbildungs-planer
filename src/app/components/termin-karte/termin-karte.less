@@ -18,6 +18,60 @@
   color: var(--text-disabled);
 }
 
+/* Gitter-Modus im Wochenraster: schmale Spalte statt breiter Zeile. */
+:host(.kompakt) {
+  padding: 4px 6px 4px 10px;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+:host(.kompakt) .kopf {
+  gap: 4px;
+  min-height: 18px;
+}
+
+:host(.kompakt) .titel {
+  margin-top: 0;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+:host(.kompakt) .rolle-chip {
+  padding: 0 5px;
+  font-size: 0.625rem;
+}
+
+:host(.kompakt) .menue-knopf {
+  --mat-icon-button-state-layer-size: 22px;
+
+  width: 22px;
+  height: 22px;
+  padding: 0;
+
+  ::ng-deep .mat-mdc-button-touch-target {
+    width: 22px;
+    height: 22px;
+  }
+
+  mat-icon {
+    font-size: 16px;
+  }
+}
+
+.feiertag-symbol,
+.hinweis-symbol {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.feiertag-symbol {
+  color: var(--feiertag-text);
+}
+
 /* Montag ohne Ausbildung – dieselbe rote Sprache wie ein ganz leerer Tag. */
 :host(.luecke) {
   border: 1px solid var(--luecke-rand);

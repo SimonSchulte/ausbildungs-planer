@@ -23,10 +23,6 @@ describe('PlanStore', () => {
     store.setzeDokument(dokument());
   });
 
-  it('gruppiert die Termine nach Monat', () => {
-    expect(store.monate().map((m) => m.name)).toEqual(['Januar', 'Februar', 'März']);
-  });
-
   it('tauscht beim Verschieben die Daten zweier Termine', () => {
     store.tauscheDatum('t1', 't2');
 
@@ -104,12 +100,12 @@ describe('PlanStore · KatS-Titel', () => {
   });
 });
 
-describe('PlanStore · fehlende Montage', () => {
-  it('legt für jeden Montag ohne Zeile einen leeren Termin an', () => {
+describe('PlanStore · fehlende Diensttage', () => {
+  it('legt für jeden Montag ohne Zeile einen leeren Termin an (Standard-Diensttag)', () => {
     const store = TestBed.inject(PlanStore);
     store.setzeDokument(dokument());
 
-    const ergaenzt = store.ergaenzeFehlendeMontage();
+    const ergaenzt = store.ergaenzeFehlendeDiensttage();
 
     expect(ergaenzt).toBe(49);
     expect(store.termine()).toHaveLength(52);
@@ -118,22 +114,32 @@ describe('PlanStore · fehlende Montage', () => {
     expect(neuer?.id).toBeTruthy();
   });
 
-  it('verdoppelt vorhandene Montage nicht bei erneutem Aufruf', () => {
+  it('funktioniert für einen anderen konfigurierten Diensttag', () => {
     const store = TestBed.inject(PlanStore);
     store.setzeDokument(dokument());
 
-    store.ergaenzeFehlendeMontage();
-    const zweiterAufruf = store.ergaenzeFehlendeMontage();
+    const ergaenzt = store.ergaenzeFehlendeDiensttage('Mi');
+
+    expect(ergaenzt).toBe(52);
+    expect(store.termine().find((t) => t.datum === '2026-01-07')).toBeTruthy();
+  });
+
+  it('verdoppelt vorhandene Diensttage nicht bei erneutem Aufruf', () => {
+    const store = TestBed.inject(PlanStore);
+    store.setzeDokument(dokument());
+
+    store.ergaenzeFehlendeDiensttage();
+    const zweiterAufruf = store.ergaenzeFehlendeDiensttage();
 
     expect(zweiterAufruf).toBe(0);
     expect(store.termine()).toHaveLength(52);
   });
 
-  it('lässt bereits vorhandene Montags-Termine unangetastet', () => {
+  it('lässt bereits vorhandene Diensttags-Termine unangetastet', () => {
     const store = TestBed.inject(PlanStore);
     store.setzeDokument(dokument());
 
-    store.ergaenzeFehlendeMontage();
+    store.ergaenzeFehlendeDiensttage();
 
     expect(store.terminNachId('t1')?.thema).toBe('Erste Ausbildung');
   });

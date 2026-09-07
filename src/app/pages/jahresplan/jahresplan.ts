@@ -25,16 +25,25 @@ import { QuelleDialog } from '../../components/quelle-dialog/quelle-dialog';
 import { TerminDialog, TerminDialogDaten } from '../../components/termin-dialog/termin-dialog';
 import { TerminKarte } from '../../components/termin-karte/termin-karte';
 import { BUNDESLAENDER, BundeslandCode } from '../../data/bundeslaender';
+import { WOCHENTAG_OPTIONEN, diensttagName } from '../../data/wochentage';
 import { Termin, leeresDocument } from '../../models/plan.model';
+import { DiensttagService } from '../../services/diensttag.service';
 import { FeiertagService } from '../../services/feiertage.service';
+import { PlanSlot, WochenZeile, baueWochenraster } from '../../services/plan-raster';
 import { PlanStore } from '../../services/plan-store';
-import { PlanSlot, baueRaster, gruppiereNachMonat } from '../../services/plan-raster';
 import { WorkbookService } from '../../services/workbook.service';
 import { herunterladen } from '../../storage/lokale-datei.storage';
 import { WorkbookStorage } from '../../storage/workbook-storage';
-import { formatiereDatum, heuteIso } from '../../utils/datum';
+import {
+  MONATSNAMEN,
+  WOCHENTAGE_ISO,
+  Wochentag,
+  formatiereDatum,
+  heuteIso,
+  monatIndex,
+} from '../../utils/datum';
 
-/** Hauptansicht: Jahresplan links, Ideen/Auswertung/KatS-A-Plan rechts. */
+/** Hauptansicht: Wochenraster links, Ideen/Auswertung/KatS-A-Plan rechts. */
 @Component({
   selector: 'app-jahresplan',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,8 +77,11 @@ export class Jahresplan {
   readonly store = inject(PlanStore);
   readonly workbook = inject(WorkbookService);
   readonly feiertage = inject(FeiertagService);
+  readonly diensttagService = inject(DiensttagService);
 
   readonly bundeslaender = BUNDESLAENDER;
+  readonly wochentagOptionen = WOCHENTAG_OPTIONEN;
+  readonly wochentageIso = WOCHENTAGE_ISO;
   readonly ziel = this.workbook.ziel;
   readonly beschaeftigt = this.workbook.beschaeftigt;
 
@@ -79,42 +91,57 @@ export class Jahresplan {
   readonly quelleBeschreibung = computed(() => this.ziel()?.bezeichnung ?? 'Keine Quelle geöffnet');
   readonly kannSpeichern = computed(() => this.ziel() !== null);
   readonly direktesSpeichern = computed(() => this.ziel()?.faehigkeiten.direktesSpeichern ?? false);
+  readonly diensttagLabel = computed(() => diensttagName(this.diensttagService.wochentag()));
 
-  /** Vollständiges Jahresraster: jeder Montag, jeder Termin, jeder Feiertag. */
-  readonly raster = computed<PlanSlot[]>(() =>
-    baueRaster(this.store.jahr(), this.store.termine(), this.feiertage.feiertage()),
+  /** Vollständiges Wochenraster: jede Kalenderwoche mit allen 7 Tagen. */
+  readonly wochen = computed<WochenZeile[]>(() =>
+    baueWochenraster(
+      this.store.jahr(),
+      this.store.termine(),
+      this.feiertage.feiertage(),
+      this.diensttagService.wochentag(),
+    ),
   );
 
-  readonly luecken = computed(() => this.raster().filter((s) => s.luecke));
-  readonly montage = computed(() => this.raster().filter((s) => s.istMontag));
-  readonly belegteMontage = computed(() => this.montage().length - this.luecken().length);
+  /**
+   * Diensttage im Plan-Jahr. Das Wochenraster zeigt an den Rändern auch ein paar
+   * Tage des Nachbarjahres (vollständige Wochenzeilen) – die zählen hier nicht
+   * mit, sonst käme z. B. ein Jahr mit 52 Montagen fälschlich auf 53.
+   */
+  readonly diensttagSlots = computed<PlanSlot[]>(() =>
+    this.wochen()
+      .flatMap((w) => w.tage)
+      .filter((s) => s.istDiensttag && s.imJahr),
+  );
+  readonly luecken = computed(() => this.diensttagSlots().filter((s) => s.luecke));
+  readonly belegteDiensttage = computed(() => this.diensttagSlots().length - this.luecken().length);
 
-  readonly monate = computed(() => gruppiereNachMonat(this.gefiltertesRaster()));
+  readonly sichtbareWochen = computed<WochenZeile[]>(() => {
+    const suche = this.suche().trim().toLowerCase();
+    const nurLuecken = this.nurLuecken();
+    return this.wochen().filter((woche) => {
+      if (nurLuecken && woche.luecken === 0) {
+        return false;
+      }
+      if (!suche) {
+        return true;
+      }
+      return woche.tage.some((slot) =>
+        slot.termine.some((t) =>
+          [t.thema, t.hinweis, t.ausbilder, t.katsTitel, t.kategorie]
+            .join(' ')
+            .toLowerCase()
+            .includes(suche),
+        ),
+      );
+    });
+  });
 
   constructor() {
     // Die Feiertage hängen am Jahr des Plans und am gewählten Bundesland.
     effect(() => {
       this.feiertage.bundesland();
       void this.feiertage.lade(this.store.jahr());
-    });
-  }
-
-  private gefiltertesRaster(): PlanSlot[] {
-    const suche = this.suche().trim().toLowerCase();
-    const nurLuecken = this.nurLuecken();
-    return this.raster().filter((slot) => {
-      if (nurLuecken && !slot.luecke) {
-        return false;
-      }
-      if (!suche) {
-        return true;
-      }
-      return slot.termine.some((t) =>
-        [t.thema, t.hinweis, t.ausbilder, t.katsTitel, t.kategorie]
-          .join(' ')
-          .toLowerCase()
-          .includes(suche),
-      );
     });
   }
 
@@ -126,6 +153,30 @@ export class Jahresplan {
 
   setzeBundesland(land: BundeslandCode): void {
     this.feiertage.setzeBundesland(land);
+  }
+
+  /** Wechselt den Diensttag und ergänzt sofort dessen fehlende Zeilen im Store. */
+  setzeDiensttag(wochentag: Wochentag): void {
+    this.diensttagService.setze(wochentag);
+    const ergaenzt = this.store.ergaenzeFehlendeDiensttage(wochentag);
+    if (ergaenzt) {
+      this.melde(`${ergaenzt} fehlende(r) ${diensttagName(wochentag)} als Zeilen ergänzt.`);
+    }
+  }
+
+  /** Kurzes Datum ohne Jahr, für die Wochenkopfzeile (z. B. „05.01.“). */
+  formatKurz(iso: string): string {
+    return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+  }
+
+  monatsName(woche: WochenZeile): string {
+    const ersterTagImJahr = woche.tage.find((t) => t.imJahr)?.datum ?? woche.start;
+    return MONATSNAMEN[monatIndex(ersterTagImJahr)];
+  }
+
+  istMonatswechsel(index: number): boolean {
+    const wochen = this.sichtbareWochen();
+    return index === 0 || this.monatsName(wochen[index]) !== this.monatsName(wochen[index - 1]);
   }
 
   // ------------------------------------------------------------ Drag & Drop
@@ -209,8 +260,8 @@ export class Jahresplan {
           const { meldungen } = await this.workbook.laden(storage);
           const luecken = this.luecken().length;
           const hinweis = luecken
-            ? ` ${luecken} Montag(e) ohne Ausbildung sind rot markiert.`
-            : ' Alle Montage sind belegt.';
+            ? ` ${luecken} ${this.diensttagLabel()}(e) ohne Ausbildung sind rot markiert.`
+            : ` Alle ${this.diensttagLabel()}e sind belegt.`;
           this.melde((meldungen.join(' ') || 'Arbeitsmappe geladen.') + hinweis, 9000);
         } catch (ursache) {
           this.melde(fehlertext(ursache), 10000, true);

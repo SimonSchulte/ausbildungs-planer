@@ -18,15 +18,17 @@ import { formatiereDatum, wochentag } from '../../utils/datum';
     '[class.ereignis]': 'art() === "ereignis"',
     '[class.frei]': 'istFrei()',
     '[class.luecke]': 'luecke()',
+    '[class.kompakt]': 'kompakt()',
   },
 })
 export class TerminKarte {
   readonly termin = input.required<Termin>();
   readonly katsThema = input<KatsThema | null>(null);
+  /** Gitter-Modus für den Wochenraster: schmale Spalte, Datum/Tag entfallen. */
   readonly kompakt = input(false);
   /** Name des Feiertags an diesem Datum, falls vorhanden. */
   readonly feiertag = input<string | null>(null);
-  /** Montag ohne Ausbildungsthema – wird rot hervorgehoben. */
+  /** Diensttag ohne Ausbildungsthema – wird rot hervorgehoben. */
   readonly luecke = input(false);
 
   readonly bearbeiten = output<void>();
