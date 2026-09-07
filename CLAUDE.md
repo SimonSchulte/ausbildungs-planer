@@ -42,7 +42,9 @@ Eine Route (`''` → `Jahresplan`), Hash-Routing wegen GitHub Pages.
 src/app/
   models/plan.model.ts     Domänenmodell (Termin, KatsThema, PlanDocument, NACHWEISE)
   data/kategorien.ts       Rollen-Normalisierung + Farben
-  utils/datum.ts           ISO ↔ Excel-Serial, Wochentag, Formatierung
+  data/bundeslaender.ts    Bundesland-Codes der feiertage-api
+  data/feiertage-berechnet.ts  Osterformel + Feiertagsregeln (Rückfallebene)
+  utils/datum.ts           ISO ↔ Excel-Serial, Wochentag, Montage eines Jahres
   storage/                 Persistenz-Abstraktion (WorkbookStorage) + Implementierungen
   services/
     excel-schema.ts        Spaltenüberschriften ↔ Feldnamen, Kreuzchen-Erkennung
@@ -50,6 +52,8 @@ src/app/
     excel-schreiben.ts     PlanDocument → Arbeitsmappe (3 Blätter)
     plan-store.ts          Zustand (Signals) + Undo/Redo
     workbook.service.ts    Bindeglied Storage ↔ Store
+    feiertage.service.ts   Feiertage: API → Cache → Berechnung
+    plan-raster.ts         Jahresraster aus Montagen, Terminen und Feiertagen
     auswertung.ts          Statistiken (reine Funktionen)
   components/              Karte, Dialoge, Seitenbereiche
   pages/jahresplan/        Hauptansicht (Toolbar, Plan, Seitenleiste)
@@ -70,6 +74,13 @@ src/app/
   Signal-Zustand vorbeischreiben.
 - **Der Excel-Code wird dynamisch importiert** (`await import('./excel-lesen')`),
   weil SheetJS sonst das Startbundle dominiert.
+- **Das Jahresraster ist abgeleitet, nicht gespeichert.** `baueRaster` mischt alle
+  Montage des Jahres, alle Termine der Mappe und alle Feiertage zu `PlanSlot`s.
+  Dadurch ist jeder Montag sichtbar, ohne dass leere Zeilen in die Excel wandern.
+  Ein `PlanSlot` ist eine Lücke, wenn er Montag ist, kein Feiertag und kein Thema
+  hat – genau das wird rot markiert.
+- **Feiertage sind abgeleitet und wandern nicht in die Mappe.** Sie sind aus Jahr
+  und Bundesland reproduzierbar; die Mappe bleibt damit frei von generierten Zeilen.
 
 ### Drag & Drop (Angular CDK)
 
@@ -81,10 +92,22 @@ ziehen“ eindeutig. Die Quelle wird nicht über Container ermittelt, sondern ü
 | Zug | Wirkung |
 |---|---|
 | Termin → Termin | beide tauschen ihr Datum (`tauscheDatum`) |
+| Termin → leerer Tag | Termin bekommt das Datum (`verschiebeAufDatum`) |
+| Idee → leerer Tag | Idee wird eingeplant (`ausBacklogAufDatum`) |
 | Idee → belegter Termin | Idee übernimmt das Datum, der bisherige Termin wandert ins Backlog |
 | Idee → freier Slot | Slot wird befüllt, ein vorhandener Hinweis bleibt am Datum |
 | Termin → Backlog | Termin verliert sein Datum (`zuBacklog`) |
 | Idee → Idee | Umsortieren (nur ungefiltert) |
+
+### Feiertage
+
+`FeiertagService` lädt von `https://feiertage-api.de/api/?jahr=…&nur_land=…`,
+legt Treffer im localStorage ab und rechnet bei Bedarf lokal
+(`data/feiertage-berechnet.ts`). Diese Rückfallebene ist **nicht optional**: Ohne
+Feiertage würde Ostermontag als rote Ausbildungslücke erscheinen. Ob die API
+CORS für die GitHub-Pages-Origin erlaubt, ist ungeprüft – deshalb muss die
+Berechnung korrekt bleiben. Änderungen an den Feiertagsregeln gehören in
+`feiertage-berechnet.spec.ts` abgesichert.
 
 ### Excel-Rundlauf
 
@@ -120,8 +143,9 @@ Datumszellen werden als echte Excel-Seriennummern geschrieben (`isoZuSerial`), n
 
 ## Tests
 
-Vitest, jsdom. Schwerpunkt liegt auf dem Excel-Rundlauf (`excel-lesen.spec.ts`) und
-den Plan-Operationen (`plan-store.spec.ts`).
+Vitest, jsdom. Schwerpunkt liegt auf dem Excel-Rundlauf (`excel-lesen.spec.ts`),
+den Plan-Operationen (`plan-store.spec.ts`), dem Jahresraster (`plan-raster.spec.ts`)
+und den Feiertagen (`feiertage-berechnet.spec.ts`).
 
 **Keine echten Planungsdaten ins Repository.** Testmappen werden im Test selbst mit
 `XLSX.utils.aoa_to_sheet` erzeugt; die Fixture in `excel-lesen.spec.ts` bildet die

@@ -96,6 +96,25 @@ export class PlanStore {
     return termin.id;
   }
 
+  /** Übernimmt einen fertig ausgefüllten Entwurf (neuer Eintrag aus dem Dialog). */
+  fuegeTerminEin(entwurf: Termin): string {
+    const termin = { ...entwurf, id: neueId() };
+    this.mutiere((d) =>
+      termin.datum
+        ? { ...d, termine: [...d.termine, termin] }
+        : { ...d, backlog: [termin, ...d.backlog] },
+    );
+    return termin.id;
+  }
+
+  /** Zieht einen geplanten Termin auf ein bisher unbelegtes Datum. */
+  verschiebeAufDatum(id: string, datum: string): void {
+    this.mutiere((d) => ({
+      ...d,
+      termine: d.termine.map((t) => (t.id === id ? { ...t, datum } : t)),
+    }));
+  }
+
   aktualisiereTermin(id: string, aenderung: Partial<Termin>): void {
     const anwenden = (liste: Termin[]) =>
       liste.map((t) => (t.id === id ? { ...t, ...aenderung, id: t.id } : t));

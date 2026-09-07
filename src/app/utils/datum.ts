@@ -83,6 +83,23 @@ export function formatiereDatum(iso: string): string {
   return `${d}.${m}.${y}`;
 }
 
+/** Alle Montage eines Jahres als ISO-Daten – das Gerüst des Jahresplans. */
+export function montageImJahr(jahr: number): string[] {
+  const erster = new Date(Date.UTC(jahr, 0, 1));
+  // 0 = Sonntag, 1 = Montag; von Neujahr bis zum ersten Montag vorspulen.
+  const versatz = (8 - erster.getUTCDay()) % 7;
+  const montage: string[] = [];
+  for (let tag = new Date(erster.getTime() + versatz * TAG_MS); tag.getUTCFullYear() === jahr;) {
+    montage.push(`${tag.getUTCFullYear()}-${pad(tag.getUTCMonth() + 1)}-${pad(tag.getUTCDate())}`);
+    tag = new Date(tag.getTime() + 7 * TAG_MS);
+  }
+  return montage;
+}
+
+export function istMontag(iso: string): boolean {
+  return wochentag(iso) === 'Mo';
+}
+
 export function heuteIso(): string {
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

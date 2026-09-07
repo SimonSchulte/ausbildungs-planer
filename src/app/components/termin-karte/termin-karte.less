@@ -18,6 +18,40 @@
   color: var(--text-disabled);
 }
 
+/* Montag ohne Ausbildung – dieselbe rote Sprache wie ein ganz leerer Tag. */
+:host(.luecke) {
+  border: 1px solid var(--luecke-rand);
+  background: var(--luecke-bg);
+}
+
+.luecke-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--luecke-text);
+  font-weight: 500;
+
+  mat-icon {
+    font-size: 17px;
+  }
+}
+
+.feiertag-marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--radius-chip);
+  background: var(--feiertag-bg);
+  color: var(--feiertag-text);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 14px;
+  }
+}
+
 .rolle-streifen {
   position: absolute;
   inset: 0 auto 0 0;

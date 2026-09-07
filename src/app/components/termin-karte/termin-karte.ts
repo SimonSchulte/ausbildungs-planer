@@ -17,12 +17,17 @@ import { formatiereDatum, wochentag } from '../../utils/datum';
   host: {
     '[class.ereignis]': 'art() === "ereignis"',
     '[class.frei]': 'istFrei()',
+    '[class.luecke]': 'luecke()',
   },
 })
 export class TerminKarte {
   readonly termin = input.required<Termin>();
   readonly katsThema = input<KatsThema | null>(null);
   readonly kompakt = input(false);
+  /** Name des Feiertags an diesem Datum, falls vorhanden. */
+  readonly feiertag = input<string | null>(null);
+  /** Montag ohne Ausbildungsthema – wird rot hervorgehoben. */
+  readonly luecke = input(false);
 
   readonly bearbeiten = output<void>();
   readonly loeschen = output<void>();

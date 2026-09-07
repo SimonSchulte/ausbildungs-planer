@@ -1,5 +1,12 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,11 +20,15 @@ import { AuswertungPanel } from '../../components/auswertung-panel/auswertung-pa
 import { BacklogPanel } from '../../components/backlog-panel/backlog-panel';
 import { DatumDialog, DatumDialogDaten } from '../../components/datum-dialog/datum-dialog';
 import { KatsPanel } from '../../components/kats-panel/kats-panel';
+import { LeererTag } from '../../components/leerer-tag/leerer-tag';
 import { QuelleDialog } from '../../components/quelle-dialog/quelle-dialog';
 import { TerminDialog, TerminDialogDaten } from '../../components/termin-dialog/termin-dialog';
 import { TerminKarte } from '../../components/termin-karte/termin-karte';
+import { BUNDESLAENDER, BundeslandCode } from '../../data/bundeslaender';
 import { Termin, leeresDocument } from '../../models/plan.model';
+import { FeiertagService } from '../../services/feiertage.service';
 import { PlanStore } from '../../services/plan-store';
+import { PlanSlot, baueRaster, gruppiereNachMonat } from '../../services/plan-raster';
 import { WorkbookService } from '../../services/workbook.service';
 import { herunterladen } from '../../storage/lokale-datei.storage';
 import { WorkbookStorage } from '../../storage/workbook-storage';
@@ -34,6 +45,7 @@ import { formatiereDatum, heuteIso } from '../../utils/datum';
     CdkDropList,
     CdkDropListGroup,
     KatsPanel,
+    LeererTag,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
@@ -55,38 +67,65 @@ export class Jahresplan {
   private readonly snackBar = inject(MatSnackBar);
   readonly store = inject(PlanStore);
   readonly workbook = inject(WorkbookService);
+  readonly feiertage = inject(FeiertagService);
 
-  readonly monate = this.store.monate;
+  readonly bundeslaender = BUNDESLAENDER;
   readonly ziel = this.workbook.ziel;
   readonly beschaeftigt = this.workbook.beschaeftigt;
 
   readonly suche = signal('');
+  readonly nurLuecken = signal(false);
+
   readonly quelleBeschreibung = computed(() => this.ziel()?.bezeichnung ?? 'Keine Quelle geöffnet');
   readonly kannSpeichern = computed(() => this.ziel() !== null);
   readonly direktesSpeichern = computed(() => this.ziel()?.faehigkeiten.direktesSpeichern ?? false);
 
-  readonly sichtbareMonate = computed(() => {
+  /** Vollständiges Jahresraster: jeder Montag, jeder Termin, jeder Feiertag. */
+  readonly raster = computed<PlanSlot[]>(() =>
+    baueRaster(this.store.jahr(), this.store.termine(), this.feiertage.feiertage()),
+  );
+
+  readonly luecken = computed(() => this.raster().filter((s) => s.luecke));
+  readonly montage = computed(() => this.raster().filter((s) => s.istMontag));
+  readonly belegteMontage = computed(() => this.montage().length - this.luecken().length);
+
+  readonly monate = computed(() => gruppiereNachMonat(this.gefiltertesRaster()));
+
+  constructor() {
+    // Die Feiertage hängen am Jahr des Plans und am gewählten Bundesland.
+    effect(() => {
+      this.feiertage.bundesland();
+      void this.feiertage.lade(this.store.jahr());
+    });
+  }
+
+  private gefiltertesRaster(): PlanSlot[] {
     const suche = this.suche().trim().toLowerCase();
-    if (!suche) {
-      return this.monate();
-    }
-    return this.monate()
-      .map((monat) => ({
-        ...monat,
-        termine: monat.termine.filter((t) =>
-          [t.thema, t.hinweis, t.ausbilder, t.katsTitel, t.kategorie]
-            .join(' ')
-            .toLowerCase()
-            .includes(suche),
-        ),
-      }))
-      .filter((monat) => monat.termine.length > 0);
-  });
+    const nurLuecken = this.nurLuecken();
+    return this.raster().filter((slot) => {
+      if (nurLuecken && !slot.luecke) {
+        return false;
+      }
+      if (!suche) {
+        return true;
+      }
+      return slot.termine.some((t) =>
+        [t.thema, t.hinweis, t.ausbilder, t.katsTitel, t.kategorie]
+          .join(' ')
+          .toLowerCase()
+          .includes(suche),
+      );
+    });
+  }
 
   katsThema(termin: Termin) {
     return termin.katsThemaId
       ? (this.store.katsThemaNachId().get(termin.katsThemaId) ?? null)
       : null;
+  }
+
+  setzeBundesland(land: BundeslandCode): void {
+    this.feiertage.setzeBundesland(land);
   }
 
   // ------------------------------------------------------------ Drag & Drop
@@ -109,6 +148,17 @@ export class Jahresplan {
     }
   }
 
+  /** Ablage auf einem Tag ohne Eintrag – der Zug belegt das Datum einfach. */
+  aufLeeremTagAbgelegt(event: CdkDragDrop<unknown>, datum: string): void {
+    const gezogen = event.item.data as Termin;
+    if (gezogen.datum === null) {
+      this.store.ausBacklogAufDatum(gezogen.id, datum);
+    } else {
+      this.store.verschiebeAufDatum(gezogen.id, datum);
+    }
+    this.melde(`„${kurz(gezogen.thema)}“ auf ${formatiereDatum(datum)} gelegt.`);
+  }
+
   // ----------------------------------------------------------------- Termine
 
   neuerTermin(): void {
@@ -119,17 +169,21 @@ export class Jahresplan {
       .afterClosed()
       .subscribe((datum?: string) => {
         if (datum) {
-          this.bearbeiten(this.store.neuerTermin(datum));
+          this.terminAnlegen(datum);
         }
       });
   }
 
+  terminAnlegen(datum: string): void {
+    this.oeffneDialog({ datum });
+  }
+
   bearbeiten(id: string): void {
-    this.dialog.open(TerminDialog, {
-      data: { terminId: id } satisfies TerminDialogDaten,
-      width: '760px',
-      maxWidth: '94vw',
-    });
+    this.oeffneDialog({ terminId: id });
+  }
+
+  private oeffneDialog(daten: TerminDialogDaten): void {
+    this.dialog.open(TerminDialog, { data: daten, width: '760px', maxWidth: '94vw' });
   }
 
   zuBacklog(termin: Termin): void {
@@ -153,7 +207,11 @@ export class Jahresplan {
         }
         try {
           const { meldungen } = await this.workbook.laden(storage);
-          this.melde(meldungen.length ? meldungen.join(' ') : 'Arbeitsmappe geladen.', 8000);
+          const luecken = this.luecken().length;
+          const hinweis = luecken
+            ? ` ${luecken} Montag(e) ohne Ausbildung sind rot markiert.`
+            : ' Alle Montage sind belegt.';
+          this.melde((meldungen.join(' ') || 'Arbeitsmappe geladen.') + hinweis, 9000);
         } catch (ursache) {
           this.melde(fehlertext(ursache), 10000, true);
         }

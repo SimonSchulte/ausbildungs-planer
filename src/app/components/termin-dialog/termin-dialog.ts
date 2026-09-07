@@ -8,11 +8,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { KATEGORIEN, NACHWEISE, NachweisKey, Termin } from '../../models/plan.model';
+import { KATEGORIEN, NACHWEISE, NachweisKey, Termin, leererTermin } from '../../models/plan.model';
 import { PlanStore } from '../../services/plan-store';
 
 export interface TerminDialogDaten {
-  terminId: string;
+  /** Vorhandenen Eintrag bearbeiten … */
+  terminId?: string;
+  /** … oder einen neuen für dieses Datum anlegen (`null` = neue Idee). */
+  datum?: string | null;
 }
 
 /** Bearbeitet einen Termin oder eine Idee – dasselbe Formular für beide. */
@@ -42,7 +45,14 @@ export class TerminDialog {
   readonly nachweise = NACHWEISE;
   readonly katsThemen = this.store.katsThemen;
 
-  readonly entwurf = signal<Termin>(structuredClone(this.store.terminNachId(this.daten.terminId)!));
+  private readonly vorhanden = this.daten.terminId
+    ? this.store.terminNachId(this.daten.terminId)
+    : undefined;
+
+  readonly istNeu = this.vorhanden === undefined;
+  readonly entwurf = signal<Termin>(
+    this.vorhanden ? structuredClone(this.vorhanden) : leererTermin(this.daten.datum ?? null),
+  );
   readonly istIdee = computed(() => this.entwurf().datum === null);
   readonly kannAlsKatsThema = computed(() => {
     const e = this.entwurf();
@@ -86,8 +96,13 @@ export class TerminDialog {
   }
 
   speichern(): void {
-    const { id, ...aenderung } = this.entwurf();
-    this.store.aktualisiereTermin(id, aenderung);
+    const entwurf = this.entwurf();
+    if (this.istNeu) {
+      this.store.fuegeTerminEin(entwurf);
+    } else {
+      const { id, ...aenderung } = entwurf;
+      this.store.aktualisiereTermin(id, aenderung);
+    }
     this.dialogRef.close(true);
   }
 }
