@@ -121,6 +121,36 @@
   }
 }
 
+.montags-marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-chip);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+
+  &.hat-luecken {
+    border-color: var(--luecke-rand);
+    background: var(--luecke-bg);
+    color: var(--luecke-text);
+    font-weight: 500;
+  }
+
+  &.aktiv {
+    outline: 2px solid var(--luecke-rand);
+    outline-offset: 1px;
+  }
+}
+
 .plan-suche {
   display: flex;
   align-items: center;
@@ -178,6 +208,11 @@
     background: var(--surface-hover);
     font-size: 0.6875rem;
     letter-spacing: 0;
+
+    &.luecken {
+      background: var(--luecke-rand);
+      color: #fff;
+    }
   }
 }
 
@@ -191,6 +226,10 @@
     outline-offset: 3px;
     background: var(--drop-target-bg);
   }
+}
+
+.leerer-slot {
+  margin-bottom: var(--space-xs);
 }
 
 app-termin-karte {
@@ -246,4 +285,13 @@ app-termin-karte {
   padding: var(--space-xl);
   color: var(--text-disabled);
   text-align: center;
+}
+
+.menue-kopf {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  max-width: 240px;
 }

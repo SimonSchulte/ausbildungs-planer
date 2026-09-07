@@ -1,4 +1,10 @@
-<h2 mat-dialog-title>{{ istIdee() ? 'Idee bearbeiten' : 'Termin bearbeiten' }}</h2>
+<h2 mat-dialog-title>
+  @if (istNeu) {
+    {{ istIdee() ? 'Neue Idee' : 'Neuer Termin' }}
+  } @else {
+    {{ istIdee() ? 'Idee bearbeiten' : 'Termin bearbeiten' }}
+  }
+</h2>
 
 <mat-dialog-content class="inhalt">
   <div class="reihe">

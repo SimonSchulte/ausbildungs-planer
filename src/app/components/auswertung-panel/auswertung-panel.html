@@ -20,6 +20,35 @@
 </div>
 
 <section class="bereich">
+  <h3>
+    Montage im Jahr
+    <span class="quote" [class.gut]="a.montage.quote >= 1">
+      {{ a.montage.quote | percent: '1.0-0' }}
+    </span>
+  </h3>
+  <p class="nebenhinweis">
+    {{ a.montage.belegt }} von {{ a.montage.montage }} Montagen belegt, davon
+    {{ a.montage.feiertage }} Feiertag(e).
+  </p>
+  @if (a.montage.luecken.length) {
+    <p class="warnhinweis">
+      <mat-icon inline>error_outline</mat-icon>
+      {{ a.montage.luecken.length }} Montag(e) ohne Ausbildung:
+    </p>
+    <div class="marken">
+      @for (slot of a.montage.luecken; track slot.datum) {
+        <span class="marke rot">{{ formatiere(slot.datum) }}</span>
+      }
+    </div>
+  } @else if (a.montage.montage) {
+    <p class="gutmeldung">
+      <mat-icon inline>check_circle</mat-icon>
+      Jeder Montag des Jahres ist belegt oder ein Feiertag.
+    </p>
+  }
+</section>
+
+<section class="bereich">
   <h3>Ausbildungen je Rolle</h3>
   @for (zeile of a.proKategorie; track zeile.label) {
     <div class="balkenzeile">

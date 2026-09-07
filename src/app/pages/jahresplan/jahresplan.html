@@ -46,6 +46,33 @@
   <button matIconButton [matMenuTriggerFor]="mehrMenue" aria-label="Weitere Aktionen">
     <mat-icon>more_vert</mat-icon>
   </button>
+  <button
+    matIconButton
+    [matMenuTriggerFor]="feiertagMenue"
+    [matTooltip]="'Feiertage: ' + feiertage.bundesland() + ' (' + feiertage.quelle() + ')'"
+    aria-label="Feiertage und Bundesland"
+  >
+    <mat-icon>flag</mat-icon>
+  </button>
+  <mat-menu #feiertagMenue="matMenu">
+    <div class="menue-kopf" (click)="$event.stopPropagation()">
+      Feiertage aus
+      {{
+        feiertage.quelle() === 'api'
+          ? 'feiertage-api.de'
+          : feiertage.quelle() === 'zwischenspeicher'
+            ? 'dem Zwischenspeicher'
+            : 'lokaler Berechnung'
+      }}
+    </div>
+    @for (land of bundeslaender; track land.code) {
+      <button mat-menu-item (click)="setzeBundesland(land.code)">
+        <mat-icon>{{ land.code === feiertage.bundesland() ? 'check' : '' }}</mat-icon>
+        <span>{{ land.name }}</span>
+      </button>
+    }
+  </mat-menu>
+
   <mat-menu #mehrMenue="matMenu">
     <button mat-menu-item [disabled]="!store.hatDaten()" (click)="herunterladen()">
       <mat-icon>download</mat-icon>
@@ -90,6 +117,20 @@
     <section class="plan">
       <header class="plan-kopf">
         <h2>{{ store.dokument().titel }}</h2>
+        <button
+          class="montags-marke"
+          [class.hat-luecken]="luecken().length > 0"
+          [class.aktiv]="nurLuecken()"
+          [matTooltip]="
+            luecken().length
+              ? 'Nur die Montage ohne Ausbildung anzeigen'
+              : 'Jeder Montag des Jahres ist belegt'
+          "
+          (click)="nurLuecken.set(!nurLuecken())"
+        >
+          <mat-icon inline>{{ luecken().length ? 'error_outline' : 'check_circle' }}</mat-icon>
+          {{ belegteMontage() }}/{{ montage().length }} Montage belegt
+        </button>
         <span class="fueller"></span>
         <label class="plan-suche">
           <mat-icon inline>search</mat-icon>
@@ -107,34 +148,59 @@
       </header>
 
       <div class="monate">
-        @for (monat of sichtbareMonate(); track monat.index) {
+        @for (monat of monate(); track monat.index) {
           <section class="monat">
             <h3 class="monatskopf">
               {{ monat.name }}
-              <span class="anzahl">{{ monat.termine.length }}</span>
+              <span class="anzahl">{{ monat.montage }} Mo</span>
+              @if (monat.luecken) {
+                <span class="anzahl luecken">{{ monat.luecken }} offen</span>
+              }
             </h3>
-            @for (termin of monat.termine; track termin.id) {
-              <div
-                class="slot"
-                cdkDropList
-                cdkDropListSortingDisabled
-                (cdkDropListDropped)="aufTerminAbgelegt($event, termin)"
-              >
-                <app-termin-karte
-                  cdkDrag
-                  [cdkDragData]="termin"
-                  [termin]="termin"
-                  [katsThema]="katsThema(termin)"
-                  (bearbeiten)="bearbeiten(termin.id)"
-                  (verschieben)="zuBacklog(termin)"
-                  (loeschen)="loeschen(termin.id)"
-                  (dblclick)="bearbeiten(termin.id)"
-                />
-              </div>
+
+            @for (slot of monat.slots; track slot.datum) {
+              @if (slot.termine.length) {
+                @for (termin of slot.termine; track termin.id) {
+                  <div
+                    class="slot"
+                    cdkDropList
+                    cdkDropListSortingDisabled
+                    (cdkDropListDropped)="aufTerminAbgelegt($event, termin)"
+                  >
+                    <app-termin-karte
+                      cdkDrag
+                      [cdkDragData]="termin"
+                      [termin]="termin"
+                      [katsThema]="katsThema(termin)"
+                      [feiertag]="slot.feiertag"
+                      [luecke]="slot.luecke && $first"
+                      (bearbeiten)="bearbeiten(termin.id)"
+                      (verschieben)="zuBacklog(termin)"
+                      (loeschen)="loeschen(termin.id)"
+                      (dblclick)="bearbeiten(termin.id)"
+                    />
+                  </div>
+                }
+              } @else {
+                <div
+                  class="slot leerer-slot"
+                  cdkDropList
+                  cdkDropListSortingDisabled
+                  (cdkDropListDropped)="aufLeeremTagAbgelegt($event, slot.datum)"
+                >
+                  <app-leerer-tag [slot]="slot" (anlegen)="terminAnlegen(slot.datum)" />
+                </div>
+              }
             }
           </section>
         } @empty {
-          <p class="leer">Keine Termine gefunden.</p>
+          <p class="leer">
+            {{
+              nurLuecken()
+                ? 'Kein Montag ohne Ausbildung – der Plan ist vollständig.'
+                : 'Keine Termine gefunden.'
+            }}
+          </p>
         }
       </div>
     </section>

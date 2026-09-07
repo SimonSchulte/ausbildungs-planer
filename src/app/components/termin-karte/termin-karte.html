@@ -10,6 +10,9 @@
   @if (termin().kategorie) {
     <span class="rolle-chip" [style.background]="farbe()">{{ termin().kategorie }}</span>
   }
+  @if (feiertag()) {
+    <span class="feiertag-marke"> <mat-icon inline>flag</mat-icon>{{ feiertag() }} </span>
+  }
   @if (termin().hinweis) {
     <span class="hinweis" [matTooltip]="termin().hinweis">
       <mat-icon inline>event_note</mat-icon>{{ termin().hinweis }}
@@ -28,7 +31,9 @@
 </div>
 
 <div class="titel">
-  @if (istFrei()) {
+  @if (luecke()) {
+    <span class="luecke-text"> <mat-icon inline>error_outline</mat-icon>Ausbildung fehlt </span>
+  } @else if (istFrei()) {
     <span class="platzhalter">Freier Ausbildungsslot</span>
   } @else if (termin().thema) {
     {{ termin().thema }}

@@ -7,6 +7,7 @@ import {
   Termin,
   terminArt,
 } from '../models/plan.model';
+import { PlanSlot } from './plan-raster';
 import { MONATSNAMEN, monatIndex } from '../utils/datum';
 
 export interface KategorieZeile {
@@ -37,7 +38,16 @@ export interface NachweisZeile {
   termine: Termin[];
 }
 
+export interface MontagsAbdeckung {
+  montage: number;
+  belegt: number;
+  feiertage: number;
+  luecken: PlanSlot[];
+  quote: number;
+}
+
 export interface Auswertung {
+  montage: MontagsAbdeckung;
   gesamt: number;
   ausbildungen: number;
   ereignisse: number;
@@ -55,7 +65,7 @@ export interface Auswertung {
 
 const KATEGORIE_SPALTEN: ReadonlyArray<Kategorie | ''> = [...KATEGORIEN, ''];
 
-export function werteAus(dokument: PlanDocument): Auswertung {
+export function werteAus(dokument: PlanDocument, raster: readonly PlanSlot[] = []): Auswertung {
   const termine = dokument.termine;
   const ausbildungen = termine.filter((t) => terminArt(t) === 'ausbildung');
   const ereignisse = termine.filter((t) => terminArt(t) === 'ereignis');
@@ -69,6 +79,7 @@ export function werteAus(dokument: PlanDocument): Auswertung {
   const abgedeckt = pflicht.filter((z) => z.geplant.length > 0);
 
   return {
+    montage: werteMontageAus(raster),
     gesamt: termine.length,
     ausbildungen: ausbildungen.length,
     ereignisse: ereignisse.length,
@@ -86,6 +97,19 @@ export function werteAus(dokument: PlanDocument): Auswertung {
       termine: termine.filter((t) => t.nachweise.includes(n.key)),
     })),
     backlogProKategorie: zaehleKategorien(dokument.backlog),
+  };
+}
+
+function werteMontageAus(raster: readonly PlanSlot[]): MontagsAbdeckung {
+  const montage = raster.filter((s) => s.istMontag);
+  const luecken = montage.filter((s) => s.luecke);
+  const feiertage = montage.filter((s) => s.feiertag !== null);
+  return {
+    montage: montage.length,
+    belegt: montage.length - luecken.length,
+    feiertage: feiertage.length,
+    luecken,
+    quote: montage.length ? (montage.length - luecken.length) / montage.length : 1,
   };
 }
 

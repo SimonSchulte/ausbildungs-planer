@@ -11,6 +11,11 @@ an Dritte.
 ## Was die App kann
 
 - **Jahresplan** nach Monaten gruppiert, mit Rolle, Thema, Ausbilder, Nachweisen und Material.
+- **Jeder Montag des Jahres ist sichtbar** – auch die, für die in der Mappe keine Zeile
+  steht. Ein Montag ohne Ausbildungsthema wird rot als Lücke markiert; über den Zähler
+  „x/52 Montage belegt“ lässt sich der Plan auf genau diese Lücken filtern.
+- **Feiertage** werden von [feiertage-api.de](https://feiertage-api.de/) geladen und im
+  Plan angezeigt. Ein Montag, der auf einen Feiertag fällt, gilt nicht als Lücke.
 - **Termine verschieben** per Drag & Drop – zwei Termine tauschen dabei ihr Datum.
 - **Umbenennen und bearbeiten** über einen Dialog (Datum, Rolle, Thema, Ausbilder,
   Nachweise, Material, Anforderungen, HGM-4-Felder).
@@ -22,6 +27,21 @@ an Dritte.
 - **KatS-A-Plan**: eigene Themenliste pflegen und Termine bzw. Ideen darauf verweisen
   lassen (Querverweise in beide Richtungen sichtbar).
 - **Rückgängig/Wiederherstellen** (Strg+Z / Strg+Umschalt+Z), Speichern mit Strg+S.
+
+## Feiertage
+
+Quelle ist `https://feiertage-api.de/api/?jahr=<Jahr>&nur_land=<Land>`; das Bundesland
+ist in der Werkzeugleiste umstellbar (Standard: Nordrhein-Westfalen) und wird im Browser
+gemerkt. Erfolgreiche Abrufe landen im localStorage.
+
+Ist die API nicht erreichbar – kein Netz, oder sie sendet keine CORS-Header für diese
+Adresse – rechnet die App die gesetzlichen Feiertage lokal aus (Osterformel plus die
+Regeln je Bundesland). Diese Rückfallebene ist bewusst eingebaut: Ohne Feiertage würde
+Ostermontag fälschlich als rote Ausbildungslücke erscheinen. Welche Quelle gerade greift,
+zeigt das Feiertags-Menü in der Werkzeugleiste.
+
+Feiertage werden **nicht** in die Excel geschrieben. Sie sind aus Jahr und Bundesland
+reproduzierbar; die Mappe bleibt dadurch frei von generierten Zeilen.
 
 ## Datenquellen
 

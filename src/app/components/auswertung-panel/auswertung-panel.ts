@@ -5,7 +5,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { KATEGORIE_FARBEN } from '../../data/kategorien';
 import { Kategorie, Termin } from '../../models/plan.model';
 import { werteAus } from '../../services/auswertung';
+import { FeiertagService } from '../../services/feiertage.service';
 import { PlanStore } from '../../services/plan-store';
+import { baueRaster } from '../../services/plan-raster';
 import { formatiereDatum } from '../../utils/datum';
 
 /** Auswertungen über Kategorien, Monate, KatS-Abdeckung und Nachweise. */
@@ -18,8 +20,12 @@ import { formatiereDatum } from '../../utils/datum';
 })
 export class AuswertungPanel {
   private readonly store = inject(PlanStore);
+  private readonly feiertage = inject(FeiertagService);
 
-  readonly auswertung = computed(() => werteAus(this.store.dokument()));
+  private readonly raster = computed(() =>
+    baueRaster(this.store.jahr(), this.store.termine(), this.feiertage.feiertage()),
+  );
+  readonly auswertung = computed(() => werteAus(this.store.dokument(), this.raster()));
   readonly maxProMonat = computed(() =>
     Math.max(1, ...this.auswertung().proMonat.map((m) => m.gesamt)),
   );
@@ -30,6 +36,10 @@ export class AuswertungPanel {
 
   datum(termin: Termin): string {
     return termin.datum ? formatiereDatum(termin.datum) : '–';
+  }
+
+  formatiere(iso: string): string {
+    return formatiereDatum(iso);
   }
 
   monatsAnteile(
