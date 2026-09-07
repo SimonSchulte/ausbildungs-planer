@@ -1,0 +1,21 @@
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$red-palette,
+        secondary: mat.$red-palette,
+        tertiary: mat.$red-palette,
+      ),
+      typography: Roboto,
+      density: -2,
+    )
+  );
+
+  --mat-sys-primary: #eb003c;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-secondary: #000548;
+  --mat-sys-on-secondary: #ffffff;
+}

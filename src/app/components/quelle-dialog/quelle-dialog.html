@@ -1,0 +1,117 @@
+<h2 mat-dialog-title>Datenquelle öffnen</h2>
+
+<mat-dialog-content class="inhalt">
+  <mat-tab-group>
+    <mat-tab label="Excel-Datei">
+      <div class="tab-inhalt">
+        <p class="erklaerung">
+          Die Arbeitsmappe wird ausschließlich im Browser verarbeitet – es werden keine Daten
+          hochgeladen.
+        </p>
+
+        @if (dateiZugriff) {
+          <button matButton="filled" type="button" (click)="dateiOeffnen()">
+            <mat-icon>folder_open</mat-icon>
+            Datei öffnen (mit Schreibzugriff)
+          </button>
+          <p class="hinweis">
+            Änderungen lassen sich damit direkt in dieselbe Datei zurückschreiben.
+          </p>
+          <div class="trenner"><span>oder</span></div>
+        }
+
+        <label class="datei-feld">
+          <input type="file" accept=".xlsx,.xlsm" (change)="dateiGewaehlt($event)" />
+          <span class="datei-knopf">
+            <mat-icon>upload_file</mat-icon>
+            Datei auswählen
+          </span>
+        </label>
+        <p class="hinweis">
+          Ohne Schreibzugriff wird beim Speichern eine neue Datei heruntergeladen.
+        </p>
+      </div>
+    </mat-tab>
+
+    <mat-tab label="NextCloud">
+      <div class="tab-inhalt">
+        <p class="erklaerung">
+          Lesen und Schreiben über WebDAV. Die NextCloud muss CORS-Anfragen dieser Adresse erlauben,
+          sonst blockiert der Browser den Zugriff.
+        </p>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Server-URL</mat-label>
+          <input
+            matInput
+            placeholder="https://cloud.example.org"
+            [ngModel]="konfig().serverUrl"
+            (ngModelChange)="setze('serverUrl', $event)"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Zugang</mat-label>
+          <mat-select [ngModel]="konfig().modus" (ngModelChange)="setze('modus', $event)">
+            <mat-option value="benutzer">Benutzerkonto (App-Passwort)</mat-option>
+            <mat-option value="freigabe">Öffentlicher Freigabelink</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        @if (konfig().modus === 'benutzer') {
+          <mat-form-field appearance="outline">
+            <mat-label>Benutzername</mat-label>
+            <input
+              matInput
+              [ngModel]="konfig().benutzer"
+              (ngModelChange)="setze('benutzer', $event)"
+            />
+          </mat-form-field>
+        } @else {
+          <mat-form-field appearance="outline">
+            <mat-label>Freigabe-Token (Teil hinter /s/)</mat-label>
+            <input matInput [ngModel]="konfig().token" (ngModelChange)="setze('token', $event)" />
+          </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline">
+          <mat-label>Passwort</mat-label>
+          <input
+            matInput
+            type="password"
+            autocomplete="off"
+            [ngModel]="konfig().passwort"
+            (ngModelChange)="setze('passwort', $event)"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Pfad zur Arbeitsmappe</mat-label>
+          <input
+            matInput
+            placeholder="Ausbildung/Rahmenplan_2026.xlsx"
+            [ngModel]="konfig().pfad"
+            (ngModelChange)="setze('pfad', $event)"
+          />
+        </mat-form-field>
+
+        <mat-slide-toggle [ngModel]="merken()" (ngModelChange)="merken.set($event)">
+          Zugangsdaten in diesem Browser merken
+        </mat-slide-toggle>
+
+        <button matButton="filled" type="button" class="verbinden" (click)="nextcloudVerbinden()">
+          <mat-icon>cloud_sync</mat-icon>
+          Verbinden und laden
+        </button>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
+  @if (fehler()) {
+    <p class="fehler">{{ fehler() }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton mat-dialog-close>Abbrechen</button>
+</mat-dialog-actions>

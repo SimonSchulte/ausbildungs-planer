@@ -1,0 +1,139 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.werkzeuge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-light);
+
+  .suche {
+    flex: 1 1 auto;
+  }
+
+  .aktiv {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.zusammenfassung {
+  margin: 0;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--surface-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.liste {
+  flex: 1 1 auto;
+  padding: var(--space-sm);
+  overflow-y: auto;
+}
+
+.kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  overflow: hidden;
+}
+
+.nummer {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.titel {
+  overflow: hidden;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.status {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.marke {
+  padding: 1px 7px;
+  border-radius: var(--radius-chip);
+  color: #fff;
+  font-size: 0.6875rem;
+  white-space: nowrap;
+
+  &.ok {
+    background: var(--status-ok);
+  }
+
+  &.idee {
+    background: var(--ci-blue);
+  }
+
+  &.offen {
+    background: var(--status-warn);
+  }
+}
+
+.felder {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+
+  .nummer-feld {
+    flex: 0 0 90px;
+  }
+
+  .titel-feld {
+    flex: 1 1 auto;
+  }
+}
+
+.beschreibung {
+  width: 100%;
+  margin-bottom: var(--space-sm);
+}
+
+.bezuege {
+  margin-top: var(--space-md);
+
+  h4 {
+    margin: 0 0 var(--space-xs);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+}
+
+.bezug {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 3px 0;
+  font-size: 0.75rem;
+}
+
+.bezug-titel {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.leer {
+  margin: 0;
+  padding: var(--space-sm);
+  color: var(--text-disabled);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}

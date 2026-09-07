@@ -1,0 +1,88 @@
+<div class="rolle-streifen" [style.background]="farbe()" aria-hidden="true"></div>
+
+<div class="kopf">
+  @if (termin().datum) {
+    <div class="datum">
+      <span class="tag">{{ tagText() }}</span>
+      <span class="tagdatum">{{ datumText() }}</span>
+    </div>
+  }
+  @if (termin().kategorie) {
+    <span class="rolle-chip" [style.background]="farbe()">{{ termin().kategorie }}</span>
+  }
+  @if (termin().hinweis) {
+    <span class="hinweis" [matTooltip]="termin().hinweis">
+      <mat-icon inline>event_note</mat-icon>{{ termin().hinweis }}
+    </span>
+  }
+  <span class="fueller"></span>
+  <button
+    matIconButton
+    class="menue-knopf"
+    [matMenuTriggerFor]="menue"
+    aria-label="Aktionen für diesen Eintrag"
+    (click)="$event.stopPropagation()"
+  >
+    <mat-icon>more_vert</mat-icon>
+  </button>
+</div>
+
+<div class="titel">
+  @if (istFrei()) {
+    <span class="platzhalter">Freier Ausbildungsslot</span>
+  } @else if (termin().thema) {
+    {{ termin().thema }}
+  } @else {
+    <span class="platzhalter">Kein Ausbildungsthema</span>
+  }
+</div>
+
+@if (!kompakt()) {
+  <div class="meta">
+    @if (termin().ausbilder) {
+      <span class="meta-eintrag" matTooltip="Ausbilder / Verantwortlich">
+        <mat-icon inline>person</mat-icon>{{ termin().ausbilder }}
+      </span>
+    }
+    @if (katsAnzeige()) {
+      <span
+        class="meta-eintrag kats"
+        [class.verknuepft]="katsThema()"
+        [matTooltip]="
+          katsThema() ? 'Verknüpft mit dem KatS-A-Plan' : 'Nur Freitext – kein Bezug gesetzt'
+        "
+      >
+        <mat-icon inline>{{ katsThema() ? 'link' : 'link_off' }}</mat-icon
+        >{{ katsAnzeige() }}
+      </span>
+    }
+    @if (termin().material) {
+      <span class="meta-eintrag" matTooltip="Benötigtes Material: {{ termin().material }}">
+        <mat-icon inline>inventory_2</mat-icon>Material
+      </span>
+    }
+  </div>
+
+  @if (nachweisKuerzel().length) {
+    <div class="nachweise">
+      @for (kuerzel of nachweisKuerzel(); track kuerzel) {
+        <span class="nachweis-chip">{{ kuerzel }}</span>
+      }
+    </div>
+  }
+}
+
+<mat-menu #menue="matMenu">
+  <button mat-menu-item (click)="bearbeiten.emit()">
+    <mat-icon>edit</mat-icon>
+    <span>Bearbeiten</span>
+  </button>
+  <button mat-menu-item (click)="verschieben.emit()">
+    <mat-icon>{{ termin().datum ? 'inbox' : 'event_available' }}</mat-icon>
+    <span>{{ termin().datum ? 'In die offenen Ideen' : 'Datum zuweisen' }}</span>
+  </button>
+  <button mat-menu-item (click)="loeschen.emit()">
+    <mat-icon>delete</mat-icon>
+    <span>Löschen</span>
+  </button>
+</mat-menu>

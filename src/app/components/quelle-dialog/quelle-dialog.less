@@ -1,0 +1,84 @@
+.inhalt {
+  padding-top: var(--space-xs);
+}
+
+.tab-inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) 2px var(--space-sm);
+}
+
+.erklaerung {
+  margin: 0 0 var(--space-xs);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.hinweis {
+  margin: 0;
+  color: var(--text-disabled);
+  font-size: 0.75rem;
+}
+
+.trenner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-xs) 0;
+  color: var(--text-disabled);
+  font-size: 0.75rem;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1 1 auto;
+    border-top: 1px solid var(--border-light);
+  }
+}
+
+.datei-feld {
+  display: inline-block;
+
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+}
+
+.datei-knopf {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px var(--space-md);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.875rem;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.datei-feld input:focus-visible + .datei-knopf {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.verbinden {
+  align-self: flex-start;
+  margin-top: var(--space-xs);
+}
+
+.fehler {
+  margin: var(--space-sm) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: #fdecea;
+  color: var(--status-error);
+  font-size: 0.8125rem;
+}

@@ -1,0 +1,117 @@
+<div class="werkzeuge">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="suche">
+    <mat-label>Themen durchsuchen</mat-label>
+    <input matInput [ngModel]="suche()" (ngModelChange)="suche.set($event)" />
+  </mat-form-field>
+  <button
+    matIconButton
+    [class.aktiv]="nurOffene()"
+    matTooltip="Nur Themen ohne Termin anzeigen"
+    (click)="nurOffene.set(!nurOffene())"
+  >
+    <mat-icon>rule</mat-icon>
+  </button>
+  <button matButton="tonal" (click)="neuesThema()">
+    <mat-icon>add</mat-icon>
+    Thema
+  </button>
+</div>
+
+<p class="zusammenfassung">
+  {{ zeilen().length }} Themen · {{ offeneAnzahl() }} Pflichtthemen ohne Termin
+</p>
+
+<mat-accordion class="liste" multi="false">
+  @for (zeile of gefiltert(); track zeile.thema.id) {
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title class="kopf">
+          @if (zeile.thema.nummer) {
+            <span class="nummer">{{ zeile.thema.nummer }}</span>
+          }
+          <span class="titel">{{ zeile.thema.titel || 'Ohne Titel' }}</span>
+        </mat-panel-title>
+        <mat-panel-description class="status">
+          @if (zeile.geplant.length) {
+            <span class="marke ok">{{ zeile.geplant.length }}× geplant</span>
+          } @else if (zeile.ideen.length) {
+            <span class="marke idee">als Idee</span>
+          } @else if (zeile.thema.pflicht) {
+            <span class="marke offen">offen</span>
+          }
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <div class="felder">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nummer-feld">
+          <mat-label>Nr.</mat-label>
+          <input
+            matInput
+            [ngModel]="zeile.thema.nummer"
+            (ngModelChange)="aktualisiere(zeile.thema.id, { nummer: $event })"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="titel-feld">
+          <mat-label>Titel</mat-label>
+          <input
+            matInput
+            [ngModel]="zeile.thema.titel"
+            (ngModelChange)="aktualisiere(zeile.thema.id, { titel: $event })"
+          />
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="beschreibung">
+        <mat-label>Beschreibung</mat-label>
+        <textarea
+          matInput
+          rows="2"
+          [ngModel]="zeile.thema.beschreibung"
+          (ngModelChange)="aktualisiere(zeile.thema.id, { beschreibung: $event })"
+        ></textarea>
+      </mat-form-field>
+
+      <mat-checkbox
+        [ngModel]="zeile.thema.pflicht"
+        (ngModelChange)="aktualisiere(zeile.thema.id, { pflicht: $event })"
+      >
+        Pflichtthema
+      </mat-checkbox>
+
+      <div class="bezuege">
+        <h4>Querverweise</h4>
+        @for (termin of zeile.geplant; track termin.id) {
+          <div class="bezug">
+            <span class="marke ok">{{ datum(termin) }}</span>
+            <span class="bezug-titel">{{ termin.thema || '(ohne Thema)' }}</span>
+          </div>
+        }
+        @for (idee of zeile.ideen; track idee.id) {
+          <div class="bezug">
+            <span class="marke idee">Idee</span>
+            <span class="bezug-titel">{{ idee.thema }}</span>
+          </div>
+        }
+        @if (!zeile.geplant.length && !zeile.ideen.length) {
+          <p class="leer">Noch kein Termin und keine Idee verweist auf dieses Thema.</p>
+        }
+      </div>
+
+      <mat-action-row>
+        <button matButton (click)="alsIdeeAufnehmen(zeile.thema)">
+          <mat-icon>lightbulb</mat-icon>
+          Als Idee aufnehmen
+        </button>
+        <button matButton (click)="loeschen(zeile.thema.id)">
+          <mat-icon>delete</mat-icon>
+          Löschen
+        </button>
+      </mat-action-row>
+    </mat-expansion-panel>
+  } @empty {
+    <p class="leer">
+      Keine Themen. Beim Einlesen einer Mappe wird die Liste aus der Spalte „KatS-A-plan Titel“
+      aufgebaut.
+    </p>
+  }
+</mat-accordion>

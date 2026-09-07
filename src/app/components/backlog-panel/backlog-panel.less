@@ -1,0 +1,66 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.werkzeuge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-light);
+
+  .suche {
+    flex: 1 1 180px;
+  }
+
+  .rolle {
+    flex: 0 0 130px;
+  }
+
+  .aktiv {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.filterhinweis {
+  margin: 0;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--surface-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.liste {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  overflow-y: auto;
+  min-height: 120px;
+
+  &.cdk-drop-list-receiving,
+  &.cdk-drop-list-dragging {
+    background: var(--drop-target-bg);
+  }
+}
+
+app-termin-karte {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.leer {
+  margin: var(--space-lg) 0;
+  color: var(--text-disabled);
+  font-size: 0.8125rem;
+  text-align: center;
+  line-height: 1.5;
+}
