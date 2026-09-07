@@ -87,6 +87,8 @@ export class Jahresplan {
 
   readonly suche = signal('');
   readonly nurLuecken = signal(false);
+  /** Nur auf schmalen Bildschirmen relevant: Plan und Seitenleiste teilen sich dort den Platz. */
+  readonly mobilAnsicht = signal<'plan' | 'liste'>('plan');
 
   readonly quelleBeschreibung = computed(() => this.ziel()?.bezeichnung ?? 'Keine Quelle geöffnet');
   readonly kannSpeichern = computed(() => this.ziel() !== null);

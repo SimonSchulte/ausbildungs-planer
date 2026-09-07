@@ -7,10 +7,20 @@
 
 .kopfleiste {
   flex: 0 0 auto;
+  height: auto;
+  min-height: 56px;
   gap: var(--space-sm);
+  padding-block: 4px;
   padding-inline: var(--space-md);
   border-bottom: 1px solid var(--border-light);
   background: var(--surface-primary);
+
+  // Bei zu wenig Platz umbrechen statt Beschriftungen zu quetschen.
+  flex-wrap: wrap;
+
+  > * {
+    flex-shrink: 0;
+  }
 }
 
 .marke {
@@ -181,7 +191,8 @@
 .raster-bereich {
   flex: 1 1 auto;
   padding: 0 var(--space-lg) var(--space-xl);
-  overflow-y: auto;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .wochenraster {
@@ -344,4 +355,101 @@ app-termin-karte {
   font-size: 0.75rem;
   line-height: 1.4;
   max-width: 240px;
+}
+
+// ------------------------------------------------------------------ Mobil-Nav
+
+.mobil-nav {
+  display: none;
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border-light);
+  background: var(--surface-primary);
+
+  button {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 0 8px;
+    border: 0;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 0.6875rem;
+
+    &.aktiv {
+      color: var(--mat-sys-primary);
+    }
+  }
+}
+
+.mobil-nav-zahl {
+  position: absolute;
+  top: 2px;
+  right: calc(50% - 22px);
+  padding: 0 5px;
+  border-radius: var(--radius-chip);
+  background: var(--ci-red);
+  color: #fff;
+  font-size: 0.625rem;
+  line-height: 1.4;
+}
+
+// ---------------------------------------------------------------------- Mobil
+
+@media (max-width: 780px) {
+  // Nur hier ist `[hidden]` gewollt – Plan und Seitenleiste teilen sich den
+  // Platz und blenden sich gegenseitig aus. `[hidden]` hat dieselbe Spezifität
+  // wie eine einzelne Klasse, deshalb sonst gewinnt `display: flex`.
+  .plan[hidden],
+  .seitenleiste[hidden] {
+    display: none;
+  }
+
+  .marke-text {
+    display: none;
+  }
+
+  .quelle {
+    max-width: 88px;
+  }
+
+  .knopf-text {
+    display: none;
+  }
+
+  .plan-kopf {
+    flex-wrap: wrap;
+    row-gap: var(--space-xs);
+
+    h2 {
+      flex: 1 1 100%;
+    }
+  }
+
+  .plan-suche {
+    flex: 1 1 auto;
+
+    input {
+      width: auto;
+      min-width: 0;
+    }
+  }
+
+  .wochenraster {
+    grid-template-columns: 44px repeat(7, minmax(64px, 1fr));
+  }
+
+  .seitenleiste {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+    border-left: 0;
+  }
+
+  .mobil-nav {
+    display: flex;
+  }
 }
