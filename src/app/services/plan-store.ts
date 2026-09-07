@@ -7,7 +7,7 @@ import {
   leeresDocument,
   neueId,
 } from '../models/plan.model';
-import { MONATSNAMEN, monatIndex } from '../utils/datum';
+import { MONATSNAMEN, monatIndex, montageImJahr } from '../utils/datum';
 
 export interface MonatsGruppe {
   index: number;
@@ -105,6 +105,26 @@ export class PlanStore {
         : { ...d, backlog: [termin, ...d.backlog] },
     );
     return termin.id;
+  }
+
+  /**
+   * Legt für jeden Montag des Jahres eine Zeile an, sofern noch keine existiert.
+   *
+   * Damit steht das Montagsgerüst auch in der Excel und nicht nur in der Ansicht –
+   * ein vergessener Dienstabend fällt so schon in der Mappe auf. Läuft nach dem
+   * Laden automatisch und ist wiederholbar, ohne Zeilen zu verdoppeln.
+   */
+  ergaenzeFehlendeMontage(): number {
+    const belegt = new Set(this.termine().map((t) => t.datum));
+    const fehlend = montageImJahr(this.jahr()).filter((datum) => !belegt.has(datum));
+    if (!fehlend.length) {
+      return 0;
+    }
+    this.mutiere((d) => ({
+      ...d,
+      termine: [...d.termine, ...fehlend.map((datum) => leererTermin(datum))],
+    }));
+    return fehlend.length;
   }
 
   /** Zieht einen geplanten Termin auf ein bisher unbelegtes Datum. */

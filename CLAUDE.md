@@ -32,7 +32,7 @@ einer bestehenden Excel-Arbeitsmappe ab und ergänzt Drag & Drop, ein aufgeräum
 Ideen-Backlog, Auswertungen und Querverweise auf den KatS-Ausbildungsplan.
 Vollständig clientseitig – kein Backend, keine Anmeldung. Läuft als statische Seite
 auf GitHub Pages. Fachsprache und Oberfläche sind deutsch; Bezeichner im Code
-ebenfalls (siehe *Konventionen*).
+ebenfalls (siehe _Konventionen_).
 
 ## Architektur
 
@@ -74,13 +74,25 @@ src/app/
   Signal-Zustand vorbeischreiben.
 - **Der Excel-Code wird dynamisch importiert** (`await import('./excel-lesen')`),
   weil SheetJS sonst das Startbundle dominiert.
-- **Das Jahresraster ist abgeleitet, nicht gespeichert.** `baueRaster` mischt alle
-  Montage des Jahres, alle Termine der Mappe und alle Feiertage zu `PlanSlot`s.
-  Dadurch ist jeder Montag sichtbar, ohne dass leere Zeilen in die Excel wandern.
-  Ein `PlanSlot` ist eine Lücke, wenn er Montag ist, kein Feiertag und kein Thema
-  hat – genau das wird rot markiert.
+- **Jeder Montag bekommt eine echte Zeile.** `PlanStore.ergaenzeFehlendeMontage`
+  legt beim Laden (und bei „Neuer Plan“) für jeden Montag ohne Eintrag einen
+  leeren `Termin` an. Das ist bewusst keine reine Anzeigehilfe: Die Zeilen landen
+  in `store.termine` und damit beim Speichern auch in der Excel – so ist
+  programmatisch sichergestellt, dass kein Montag im Jahr fehlt, ohne dass jemand
+  von Hand 52 Zeilen pflegen muss. Wiederholte Aufrufe sind idempotent (Prüfung
+  über `Set` der vorhandenen Daten).
+- **Das Jahresraster ist trotzdem abgeleitet, nicht gespeichert.** `baueRaster`
+  mischt alle Montage des Jahres, alle Termine der Mappe und alle Feiertage zu
+  `PlanSlot`s. Das bleibt die Grundlage der Ansicht, auch wenn nach dem Laden
+  praktisch immer schon alle Montage als Termine existieren – Feiertage an
+  Wochentagen (Karfreitag, Christi Himmelfahrt, …) tauchen weiterhin nur als
+  synthetischer Slot auf, nicht als Zeile. Ein `PlanSlot` ist eine Lücke, wenn er
+  Montag ist, kein Feiertag und kein Thema hat – genau das wird rot markiert,
+  egal ob der Slot ein synthetischer oder ein echter, leerer Termin ist.
 - **Feiertage sind abgeleitet und wandern nicht in die Mappe.** Sie sind aus Jahr
-  und Bundesland reproduzierbar; die Mappe bleibt damit frei von generierten Zeilen.
+  und Bundesland reproduzierbar; die Mappe bleibt damit frei von generierten
+  Zeilen. Das gilt nur für Feiertage – die Montags-Zeilen selbst sind gewollt
+  echte Daten (siehe oben).
 
 ### Drag & Drop (Angular CDK)
 
@@ -89,15 +101,15 @@ eine **eigene** `cdkDropList` mit genau einem Element – nur so ist „auf dies
 ziehen“ eindeutig. Die Quelle wird nicht über Container ermittelt, sondern über
 `termin.datum === null`:
 
-| Zug | Wirkung |
-|---|---|
-| Termin → Termin | beide tauschen ihr Datum (`tauscheDatum`) |
-| Termin → leerer Tag | Termin bekommt das Datum (`verschiebeAufDatum`) |
-| Idee → leerer Tag | Idee wird eingeplant (`ausBacklogAufDatum`) |
+| Zug                    | Wirkung                                                            |
+| ---------------------- | ------------------------------------------------------------------ |
+| Termin → Termin        | beide tauschen ihr Datum (`tauscheDatum`)                          |
+| Termin → leerer Tag    | Termin bekommt das Datum (`verschiebeAufDatum`)                    |
+| Idee → leerer Tag      | Idee wird eingeplant (`ausBacklogAufDatum`)                        |
 | Idee → belegter Termin | Idee übernimmt das Datum, der bisherige Termin wandert ins Backlog |
-| Idee → freier Slot | Slot wird befüllt, ein vorhandener Hinweis bleibt am Datum |
-| Termin → Backlog | Termin verliert sein Datum (`zuBacklog`) |
-| Idee → Idee | Umsortieren (nur ungefiltert) |
+| Idee → freier Slot     | Slot wird befüllt, ein vorhandener Hinweis bleibt am Datum         |
+| Termin → Backlog       | Termin verliert sein Datum (`zuBacklog`)                           |
+| Idee → Idee            | Umsortieren (nur ungefiltert)                                      |
 
 ### Feiertage
 

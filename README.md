@@ -11,8 +11,11 @@ an Dritte.
 ## Was die App kann
 
 - **Jahresplan** nach Monaten gruppiert, mit Rolle, Thema, Ausbilder, Nachweisen und Material.
-- **Jeder Montag des Jahres ist sichtbar** – auch die, für die in der Mappe keine Zeile
-  steht. Ein Montag ohne Ausbildungsthema wird rot als Lücke markiert; über den Zähler
+- **Jeder Montag des Jahres bekommt eine Zeile.** Beim Öffnen einer Mappe (und bei
+  „Neuer Plan“) legt die App für jeden Montag ohne Eintrag automatisch eine leere
+  Zeile an – programmatisch abgesichert, dass kein Montag im Jahresplan fehlt. Die
+  Zeilen werden beim Speichern mit in die Excel geschrieben. Ein Montag ohne
+  Ausbildungsthema wird rot als Lücke markiert; über den Zähler
   „x/52 Montage belegt“ lässt sich der Plan auf genau diese Lücken filtern.
 - **Feiertage** werden von [feiertage-api.de](https://feiertage-api.de/) geladen und im
   Plan angezeigt. Ein Montag, der auf einen Feiertag fällt, gilt nicht als Lücke.
@@ -48,10 +51,10 @@ reproduzierbar; die Mappe bleibt dadurch frei von generierten Zeilen.
 Die Persistenz ist hinter `WorkbookStorage` (`src/app/storage/`) abstrahiert. Aktuell
 gibt es zwei Implementierungen:
 
-| Quelle | Lesen | Schreiben |
-|---|---|---|
+| Quelle                 | Lesen                           | Schreiben                                                                      |
+| ---------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
 | **Lokale Excel-Datei** | Datei-Dialog oder Datei-Auswahl | direkt in dieselbe Datei (File System Access API, Chrome/Edge), sonst Download |
-| **NextCloud (WebDAV)** | `GET` auf den Dateipfad | `PUT` auf denselben Pfad |
+| **NextCloud (WebDAV)** | `GET` auf den Dateipfad         | `PUT` auf denselben Pfad                                                       |
 
 NextCloud unterstützt zwei Zugänge: Benutzerkonto mit App-Passwort
 (`/remote.php/dav/files/<benutzer>/<pfad>`) oder öffentlicher Freigabelink
@@ -93,7 +96,7 @@ npm run format     # Prettier über src/
 ## Deployment (GitHub Pages)
 
 Ein Push auf `main` baut und veröffentlicht die App über
-`.github/workflows/deploy.yml`. Voraussetzung: unter *Settings → Pages* muss als
+`.github/workflows/deploy.yml`. Voraussetzung: unter _Settings → Pages_ muss als
 Quelle **GitHub Actions** eingestellt sein.
 
 Alternativ manuell aus dem Arbeitsverzeichnis:

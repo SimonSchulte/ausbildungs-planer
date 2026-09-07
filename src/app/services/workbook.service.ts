@@ -29,7 +29,12 @@ export class WorkbookService {
       const { dokument, meldungen } = leseArbeitsmappe(inhalt.daten);
       this.store.setzeDokument(dokument);
       this.aktivesZiel.set(storage);
-      return { meldungen };
+      const ergaenzt = this.store.ergaenzeFehlendeMontage();
+      return {
+        meldungen: ergaenzt
+          ? [...meldungen, `${ergaenzt} fehlende Montag(e) als Zeilen ergänzt.`]
+          : meldungen,
+      };
     } finally {
       this.beschaeftigt.set(false);
     }
@@ -81,6 +86,7 @@ export class WorkbookService {
   neuesDokument(dokument: PlanDocument): void {
     this.store.setzeDokument(dokument);
     this.aktivesZiel.set(null);
+    this.store.ergaenzeFehlendeMontage();
   }
 
   private dateiname(): string {

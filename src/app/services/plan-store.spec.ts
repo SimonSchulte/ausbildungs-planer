@@ -103,3 +103,38 @@ describe('PlanStore · KatS-Titel', () => {
     expect(store.terminNachId('t1')?.katsTitel).toBe('Neuer Titel');
   });
 });
+
+describe('PlanStore · fehlende Montage', () => {
+  it('legt für jeden Montag ohne Zeile einen leeren Termin an', () => {
+    const store = TestBed.inject(PlanStore);
+    store.setzeDokument(dokument());
+
+    const ergaenzt = store.ergaenzeFehlendeMontage();
+
+    expect(ergaenzt).toBe(49);
+    expect(store.termine()).toHaveLength(52);
+    const neuer = store.termine().find((t) => t.datum === '2026-01-12');
+    expect(neuer?.thema).toBe('');
+    expect(neuer?.id).toBeTruthy();
+  });
+
+  it('verdoppelt vorhandene Montage nicht bei erneutem Aufruf', () => {
+    const store = TestBed.inject(PlanStore);
+    store.setzeDokument(dokument());
+
+    store.ergaenzeFehlendeMontage();
+    const zweiterAufruf = store.ergaenzeFehlendeMontage();
+
+    expect(zweiterAufruf).toBe(0);
+    expect(store.termine()).toHaveLength(52);
+  });
+
+  it('lässt bereits vorhandene Montags-Termine unangetastet', () => {
+    const store = TestBed.inject(PlanStore);
+    store.setzeDokument(dokument());
+
+    store.ergaenzeFehlendeMontage();
+
+    expect(store.terminNachId('t1')?.thema).toBe('Erste Ausbildung');
+  });
+});
