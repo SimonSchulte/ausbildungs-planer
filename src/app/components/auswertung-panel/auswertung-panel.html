@@ -1,0 +1,148 @@
+@let a = auswertung();
+
+<div class="bereich kennzahlen">
+  <div class="kennzahl">
+    <span class="wert">{{ a.gesamt }}</span>
+    <span class="label">Einträge</span>
+  </div>
+  <div class="kennzahl">
+    <span class="wert">{{ a.ausbildungen }}</span>
+    <span class="label">Ausbildungen</span>
+  </div>
+  <div class="kennzahl">
+    <span class="wert">{{ a.ereignisse }}</span>
+    <span class="label">Veranstaltungen</span>
+  </div>
+  <div class="kennzahl" [class.warnung]="a.freieSlots.length > 0">
+    <span class="wert">{{ a.freieSlots.length }}</span>
+    <span class="label">Freie Slots</span>
+  </div>
+</div>
+
+<section class="bereich">
+  <h3>Ausbildungen je Rolle</h3>
+  @for (zeile of a.proKategorie; track zeile.label) {
+    <div class="balkenzeile">
+      <span class="balken-label">{{ zeile.label }}</span>
+      <div class="balken-spur">
+        <div
+          class="balken"
+          [style.width.%]="zeile.anteil * 100"
+          [style.background]="farbe(zeile.kategorie)"
+        ></div>
+      </div>
+      <span class="balken-wert">
+        {{ zeile.anzahl }}
+        <small>{{ zeile.anteil | percent: '1.0-0' }}</small>
+      </span>
+    </div>
+  } @empty {
+    <p class="leer">Noch keine Ausbildungen geplant.</p>
+  }
+</section>
+
+<section class="bereich">
+  <h3>Verteilung über das Jahr</h3>
+  <div class="monatsraster">
+    @for (monat of a.proMonat; track monat.index) {
+      <div
+        class="monat"
+        [matTooltip]="
+          monat.name +
+          ': ' +
+          monat.ausbildungen +
+          ' Ausbildungen, ' +
+          monat.ereignisse +
+          ' Veranstaltungen'
+        "
+      >
+        <div class="saeule">
+          @for (teil of monatsAnteile(monat.proKategorie); track teil.kategorie) {
+            <div
+              class="saeulen-teil"
+              [style.height.%]="(teil.anzahl / maxProMonat()) * 100"
+              [style.background]="farbe(teil.kategorie)"
+            ></div>
+          }
+        </div>
+        <span class="monatsname">{{ monat.name.slice(0, 3) }}</span>
+        <span class="monatszahl">{{ monat.gesamt }}</span>
+      </div>
+    }
+  </div>
+</section>
+
+<section class="bereich">
+  <h3>
+    KatS-A-Plan Abdeckung
+    <span class="quote" [class.gut]="a.pflichtQuote >= 1">
+      {{ a.pflichtQuote | percent: '1.0-0' }}
+    </span>
+  </h3>
+  @if (a.katsOffen.length) {
+    <p class="warnhinweis">
+      <mat-icon inline>warning</mat-icon>
+      {{ a.katsOffen.length }} Pflichtthema(en) ohne Termin im Jahresplan:
+    </p>
+    <ul class="liste">
+      @for (zeile of a.katsOffen; track zeile.thema.id) {
+        <li>
+          {{ zeile.thema.nummer ? zeile.thema.nummer + ' · ' : '' }}{{ zeile.thema.titel }}
+          @if (zeile.imBacklog.length) {
+            <span class="marke">liegt als Idee vor</span>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="gutmeldung">
+      <mat-icon inline>check_circle</mat-icon>
+      Alle Pflichtthemen sind im Jahresplan verplant.
+    </p>
+  }
+  @if (a.ohneKatsBezug.length) {
+    <p class="nebenhinweis">
+      {{ a.ohneKatsBezug.length }} Ausbildungstermin(e) ohne Bezug zum KatS-A-Plan.
+    </p>
+  }
+</section>
+
+<section class="bereich">
+  <h3>Nachweise & Unterweisungen</h3>
+  <table class="tabelle">
+    <tbody>
+      @for (zeile of a.nachweise; track zeile.key) {
+        <tr [class.fehlt]="zeile.termine.length === 0">
+          <td class="name">{{ zeile.label }}</td>
+          <td class="anzahl">{{ zeile.termine.length }}×</td>
+          <td class="termine">
+            @for (termin of zeile.termine; track termin.id) {
+              <span class="marke">{{ datum(termin) }}</span>
+            } @empty {
+              <span class="fehlt-text">nicht geplant</span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>
+
+<section class="bereich">
+  <h3>Offene Punkte</h3>
+  <ul class="liste">
+    <li>
+      {{ a.freieSlots.length }} Termin(e) mit Rolle, aber ohne Thema
+      @if (a.freieSlots.length) {
+        <span class="marke">{{ datum(a.freieSlots[0]) }} …</span>
+      }
+    </li>
+    <li>{{ a.ohneAusbilder.length }} Ausbildung(en) ohne Ausbilder</li>
+    <li>
+      {{ a.backlogProKategorie.length ? '' : 'Keine ' }}offenen Ideen
+      @for (zeile of a.backlogProKategorie; track zeile.label) {
+        <span class="marke">{{ zeile.label }}: {{ zeile.anzahl | number }}</span>
+      }
+    </li>
+  </ul>
+</section>

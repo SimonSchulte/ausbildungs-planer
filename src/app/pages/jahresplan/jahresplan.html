@@ -1,0 +1,169 @@
+<mat-toolbar class="kopfleiste">
+  <span class="marke">
+    <mat-icon>event_available</mat-icon>
+    <span class="marke-text">Ausbildungsplaner</span>
+  </span>
+
+  <span class="jahr">{{ store.jahr() }}</span>
+
+  <span class="quelle" [matTooltip]="quelleBeschreibung()">
+    <mat-icon inline>{{ ziel()?.art === 'nextcloud' ? 'cloud' : 'description' }}</mat-icon>
+    {{ quelleBeschreibung() }}
+    @if (store.ungespeichert()) {
+      <span class="ungespeichert" matTooltip="Es gibt ungespeicherte Änderungen">•</span>
+    }
+  </span>
+
+  <span class="fueller"></span>
+
+  <button
+    matIconButton
+    [disabled]="!store.kannRueckgaengig()"
+    matTooltip="Rückgängig (Strg+Z)"
+    (click)="store.rueckgaengig()"
+  >
+    <mat-icon>undo</mat-icon>
+  </button>
+  <button
+    matIconButton
+    [disabled]="!store.kannWiederholen()"
+    matTooltip="Wiederherstellen (Strg+Umschalt+Z)"
+    (click)="store.wiederholen()"
+  >
+    <mat-icon>redo</mat-icon>
+  </button>
+
+  <button matButton (click)="oeffnen()">
+    <mat-icon>folder_open</mat-icon>
+    Öffnen
+  </button>
+
+  <button matButton="filled" [disabled]="!store.hatDaten()" (click)="speichern()">
+    <mat-icon>save</mat-icon>
+    Speichern
+  </button>
+
+  <button matIconButton [matMenuTriggerFor]="mehrMenue" aria-label="Weitere Aktionen">
+    <mat-icon>more_vert</mat-icon>
+  </button>
+  <mat-menu #mehrMenue="matMenu">
+    <button mat-menu-item [disabled]="!store.hatDaten()" (click)="herunterladen()">
+      <mat-icon>download</mat-icon>
+      <span>Als Excel-Datei herunterladen</span>
+    </button>
+    <button mat-menu-item [disabled]="!ziel()?.faehigkeiten?.neuLaden" (click)="neuLaden()">
+      <mat-icon>refresh</mat-icon>
+      <span>Vom Ablageort neu laden</span>
+    </button>
+    <button mat-menu-item (click)="neuerPlan()">
+      <mat-icon>note_add</mat-icon>
+      <span>Leeren Plan beginnen</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>
+
+@if (beschaeftigt()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (!store.hatDaten()) {
+  <div class="willkommen">
+    <mat-icon class="gross">upload_file</mat-icon>
+    <h1>Rahmenplan öffnen</h1>
+    <p>
+      Excel-Arbeitsmappe mit dem Blatt „Jahresplan“ laden – aus einer lokalen Datei oder aus
+      NextCloud. Die Mappe bleibt das führende Format; die App liest und schreibt sie direkt.
+    </p>
+    <div class="willkommen-aktionen">
+      <button matButton="filled" (click)="oeffnen()">
+        <mat-icon>folder_open</mat-icon>
+        Arbeitsmappe öffnen
+      </button>
+      <button matButton="outlined" (click)="neuerPlan()">
+        <mat-icon>note_add</mat-icon>
+        Leeren Plan beginnen
+      </button>
+    </div>
+  </div>
+} @else {
+  <div class="arbeitsflaeche" cdkDropListGroup>
+    <section class="plan">
+      <header class="plan-kopf">
+        <h2>{{ store.dokument().titel }}</h2>
+        <span class="fueller"></span>
+        <label class="plan-suche">
+          <mat-icon inline>search</mat-icon>
+          <input
+            type="search"
+            placeholder="Im Plan suchen"
+            [value]="suche()"
+            (input)="suche.set($any($event.target).value)"
+          />
+        </label>
+        <button matButton="tonal" (click)="neuerTermin()">
+          <mat-icon>add</mat-icon>
+          Termin
+        </button>
+      </header>
+
+      <div class="monate">
+        @for (monat of sichtbareMonate(); track monat.index) {
+          <section class="monat">
+            <h3 class="monatskopf">
+              {{ monat.name }}
+              <span class="anzahl">{{ monat.termine.length }}</span>
+            </h3>
+            @for (termin of monat.termine; track termin.id) {
+              <div
+                class="slot"
+                cdkDropList
+                cdkDropListSortingDisabled
+                (cdkDropListDropped)="aufTerminAbgelegt($event, termin)"
+              >
+                <app-termin-karte
+                  cdkDrag
+                  [cdkDragData]="termin"
+                  [termin]="termin"
+                  [katsThema]="katsThema(termin)"
+                  (bearbeiten)="bearbeiten(termin.id)"
+                  (verschieben)="zuBacklog(termin)"
+                  (loeschen)="loeschen(termin.id)"
+                  (dblclick)="bearbeiten(termin.id)"
+                />
+              </div>
+            }
+          </section>
+        } @empty {
+          <p class="leer">Keine Termine gefunden.</p>
+        }
+      </div>
+    </section>
+
+    <aside class="seitenleiste">
+      <mat-tab-group class="reiter" [preserveContent]="true">
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon inline>lightbulb</mat-icon>
+            Offene Ideen
+            <span class="reiter-zahl">{{ store.backlog().length }}</span>
+          </ng-template>
+          <app-backlog-panel />
+        </mat-tab>
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon inline>insights</mat-icon>
+            Auswertung
+          </ng-template>
+          <app-auswertung-panel />
+        </mat-tab>
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon inline>fact_check</mat-icon>
+            KatS-A-Plan
+          </ng-template>
+          <app-kats-panel />
+        </mat-tab>
+      </mat-tab-group>
+    </aside>
+  </div>
+}

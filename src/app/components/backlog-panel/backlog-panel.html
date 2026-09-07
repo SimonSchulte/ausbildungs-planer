@@ -1,0 +1,61 @@
+<div class="werkzeuge">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="suche">
+    <mat-label>Ideen durchsuchen</mat-label>
+    <input matInput [ngModel]="suche()" (ngModelChange)="suche.set($event)" />
+    @if (suche()) {
+      <button matIconButton matSuffix aria-label="Suche leeren" (click)="suche.set('')">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rolle">
+    <mat-label>Rolle</mat-label>
+    <mat-select [ngModel]="filterKategorie()" (ngModelChange)="filterKategorie.set($event)">
+      <mat-option [value]="''">Alle</mat-option>
+      @for (kategorie of kategorien; track kategorie) {
+        <mat-option [value]="kategorie">{{ kategorie }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <button
+    matIconButton
+    [class.aktiv]="nurPflicht()"
+    matTooltip="Nur Pflichtthemen nach KatS-A-Plan"
+    (click)="nurPflicht.set(!nurPflicht())"
+  >
+    <mat-icon>{{ nurPflicht() ? 'filter_alt' : 'filter_alt_off' }}</mat-icon>
+  </button>
+
+  <button matButton="tonal" (click)="neueIdee()">
+    <mat-icon>add</mat-icon>
+    Idee
+  </button>
+</div>
+
+@if (gefiltertAktiv()) {
+  <p class="filterhinweis">
+    {{ gefiltert().length }} von {{ alle().length }} Ideen – Sortieren per Drag & Drop ist gefiltert
+    deaktiviert.
+  </p>
+}
+
+<div class="liste" cdkDropList (cdkDropListDropped)="abgelegt($event)">
+  @for (idee of gefiltert(); track idee.id) {
+    <app-termin-karte
+      cdkDrag
+      [cdkDragData]="idee"
+      [termin]="idee"
+      [katsThema]="katsThema(idee)"
+      (bearbeiten)="bearbeiten(idee.id)"
+      (verschieben)="einplanen(idee)"
+      (loeschen)="loeschen(idee.id)"
+      (dblclick)="bearbeiten(idee.id)"
+    />
+  } @empty {
+    <p class="leer">
+      Keine offenen Ideen. Termine lassen sich per Drag & Drop aus dem Jahresplan hierher ziehen.
+    </p>
+  }
+</div>

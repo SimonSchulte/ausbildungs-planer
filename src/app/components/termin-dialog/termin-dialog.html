@@ -1,0 +1,147 @@
+<h2 mat-dialog-title>{{ istIdee() ? 'Idee bearbeiten' : 'Termin bearbeiten' }}</h2>
+
+<mat-dialog-content class="inhalt">
+  <div class="reihe">
+    @if (!istIdee()) {
+      <mat-form-field appearance="outline" class="schmal">
+        <mat-label>Datum</mat-label>
+        <input
+          matInput
+          type="date"
+          [ngModel]="entwurf().datum"
+          (ngModelChange)="setze('datum', $event || entwurf().datum)"
+        />
+      </mat-form-field>
+    }
+    <mat-form-field appearance="outline" class="schmal">
+      <mat-label>Rolle</mat-label>
+      <mat-select [ngModel]="entwurf().kategorie" (ngModelChange)="setze('kategorie', $event)">
+        <mat-option [value]="''">– keine –</mat-option>
+        @for (kategorie of kategorien; track kategorie) {
+          <mat-option [value]="kategorie">{{ kategorie }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="breit">
+      <mat-label>Hinweis (Veranstaltung, Feiertag …)</mat-label>
+      <input matInput [ngModel]="entwurf().hinweis" (ngModelChange)="setze('hinweis', $event)" />
+    </mat-form-field>
+  </div>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Thema</mat-label>
+    <textarea
+      matInput
+      rows="2"
+      [ngModel]="entwurf().thema"
+      (ngModelChange)="setze('thema', $event)"
+    ></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Ausbilder / Verantwortlich</mat-label>
+    <input matInput [ngModel]="entwurf().ausbilder" (ngModelChange)="setze('ausbilder', $event)" />
+  </mat-form-field>
+
+  <h3 class="abschnitt">KatS-Ausbildungsplan</h3>
+  <div class="reihe">
+    <mat-form-field appearance="outline" class="breit">
+      <mat-label>Bezug zum KatS-A-Plan</mat-label>
+      <mat-select [ngModel]="entwurf().katsThemaId" (ngModelChange)="waehleKatsThema($event)">
+        <mat-option [value]="null">– kein Bezug –</mat-option>
+        @for (thema of katsThemen(); track thema.id) {
+          <mat-option [value]="thema.id">
+            {{ thema.nummer ? thema.nummer + ' · ' : '' }}{{ thema.titel }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <button
+      matButton="outlined"
+      type="button"
+      [disabled]="!kannAlsKatsThema()"
+      (click)="alsKatsThemaAnlegen()"
+      matTooltip="Aktuellen Titel als neues Thema in die KatS-A-Plan-Liste aufnehmen"
+    >
+      <mat-icon>playlist_add</mat-icon>
+      Neues Thema
+    </button>
+  </div>
+
+  <mat-form-field appearance="outline">
+    <mat-label>KatS-A-Plan Titel (Freitext)</mat-label>
+    <textarea
+      matInput
+      rows="2"
+      [ngModel]="entwurf().katsTitel"
+      (ngModelChange)="setze('katsTitel', $event)"
+    ></textarea>
+  </mat-form-field>
+
+  <mat-checkbox [ngModel]="entwurf().katsPflicht" (ngModelChange)="setze('katsPflicht', $event)">
+    Pflichtthema nach KatS-Ausbildungsplan
+  </mat-checkbox>
+
+  <h3 class="abschnitt">Nachweise</h3>
+  <div class="nachweise">
+    @for (nachweis of nachweise; track nachweis.key) {
+      <mat-checkbox
+        [ngModel]="hatNachweis(nachweis.key)"
+        (ngModelChange)="schalteNachweis(nachweis.key, $event)"
+      >
+        {{ nachweis.kurz }}
+      </mat-checkbox>
+    }
+  </div>
+
+  <h3 class="abschnitt">Organisation</h3>
+  <mat-form-field appearance="outline">
+    <mat-label>Benötigtes Material</mat-label>
+    <textarea
+      matInput
+      rows="2"
+      [ngModel]="entwurf().material"
+      (ngModelChange)="setze('material', $event)"
+    ></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Besondere Anforderungen</mat-label>
+    <textarea
+      matInput
+      rows="2"
+      [ngModel]="entwurf().anforderungen"
+      (ngModelChange)="setze('anforderungen', $event)"
+    ></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Notizen</mat-label>
+    <textarea
+      matInput
+      rows="2"
+      [ngModel]="entwurf().notizen"
+      (ngModelChange)="setze('notizen', $event)"
+    ></textarea>
+  </mat-form-field>
+
+  <div class="reihe">
+    <mat-form-field appearance="outline" class="schmal">
+      <mat-label>HGM 4 Inhalt</mat-label>
+      <input
+        matInput
+        [ngModel]="entwurf().hgmInhalt"
+        (ngModelChange)="setze('hgmInhalt', $event)"
+      />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="breit">
+      <mat-label>HGM 4 Original-Titel</mat-label>
+      <input matInput [ngModel]="entwurf().hgmTitel" (ngModelChange)="setze('hgmTitel', $event)" />
+    </mat-form-field>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton mat-dialog-close>Abbrechen</button>
+  <button matButton="filled" (click)="speichern()">Übernehmen</button>
+</mat-dialog-actions>
