@@ -31,7 +31,7 @@ export function leereNextcloudKonfiguration(): NextcloudKonfiguration {
   return {
     serverUrl: '',
     pfad: '',
-    modus: 'benutzer',
+    modus: 'worker',
     benutzer: '',
     passwort: '',
     token: '',

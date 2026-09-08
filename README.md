@@ -52,14 +52,17 @@ reproduzierbar; die Mappe bleibt dadurch frei von generierten Zeilen.
 
 ## Datenquellen
 
-Die Persistenz ist hinter `WorkbookStorage` (`src/app/storage/`) abstrahiert. Aktuell
-gibt es drei Implementierungen:
+Die Persistenz ist hinter `WorkbookStorage` (`src/app/storage/`) abstrahiert. **NextCloud
+ist der primäre Weg** – der Plan liegt damit zentral, alle greifen auf dieselbe, stets
+aktuelle Mappe zu; der Quelle-Dialog zeigt NextCloud deshalb zuerst und schlägt darin den
+Worker-Zugang als Voreinstellung vor. Eine lokale Excel-Datei bleibt als sekundärer Weg
+möglich (z. B. ohne eingerichtete NextCloud). Aktuell gibt es drei Implementierungen:
 
 | Quelle                        | Lesen                           | Schreiben                                                                      |
 | ----------------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
-| **Lokale Excel-Datei**        | Datei-Dialog oder Datei-Auswahl | direkt in dieselbe Datei (File System Access API, Chrome/Edge), sonst Download |
-| **NextCloud (WebDAV direkt)** | `GET` auf den Dateipfad         | `PUT` auf denselben Pfad                                                       |
 | **NextCloud über Worker**     | `GET` über den CORS-Proxy       | `PUT` über den CORS-Proxy                                                      |
+| **NextCloud (WebDAV direkt)** | `GET` auf den Dateipfad         | `PUT` auf denselben Pfad                                                       |
+| **Lokale Excel-Datei**        | Datei-Dialog oder Datei-Auswahl | direkt in dieselbe Datei (File System Access API, Chrome/Edge), sonst Download |
 
 NextCloud unterstützt zwei direkte Zugänge: Benutzerkonto mit App-Passwort
 (`/remote.php/dav/files/<benutzer>/<pfad>`) oder öffentlicher Freigabelink
