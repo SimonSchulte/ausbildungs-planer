@@ -14,6 +14,7 @@ import {
   NextcloudStorage,
   leereNextcloudKonfiguration,
 } from '../../storage/nextcloud.storage';
+import { NextcloudWorkerStorage } from '../../storage/nextcloud-worker.storage';
 import { WorkbookStorage } from '../../storage/workbook-storage';
 
 const SPEICHER_SCHLUESSEL = 'ausbildungsplaner.nextcloud';
@@ -72,7 +73,10 @@ export class QuelleDialog {
   nextcloudVerbinden(): void {
     this.fehler.set('');
     try {
-      const storage = new NextcloudStorage(this.konfig());
+      const storage: WorkbookStorage =
+        this.konfig().modus === 'worker'
+          ? new NextcloudWorkerStorage(this.konfig())
+          : new NextcloudStorage(this.konfig());
       speichereKonfiguration(this.merken() ? this.konfig() : null);
       this.dialogRef.close(storage);
     } catch (ursache) {

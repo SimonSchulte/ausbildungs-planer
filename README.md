@@ -53,21 +53,27 @@ reproduzierbar; die Mappe bleibt dadurch frei von generierten Zeilen.
 ## Datenquellen
 
 Die Persistenz ist hinter `WorkbookStorage` (`src/app/storage/`) abstrahiert. Aktuell
-gibt es zwei Implementierungen:
+gibt es drei Implementierungen:
 
-| Quelle                 | Lesen                           | Schreiben                                                                      |
-| ---------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
-| **Lokale Excel-Datei** | Datei-Dialog oder Datei-Auswahl | direkt in dieselbe Datei (File System Access API, Chrome/Edge), sonst Download |
-| **NextCloud (WebDAV)** | `GET` auf den Dateipfad         | `PUT` auf denselben Pfad                                                       |
+| Quelle                        | Lesen                           | Schreiben                                                                      |
+| ----------------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
+| **Lokale Excel-Datei**        | Datei-Dialog oder Datei-Auswahl | direkt in dieselbe Datei (File System Access API, Chrome/Edge), sonst Download |
+| **NextCloud (WebDAV direkt)** | `GET` auf den Dateipfad         | `PUT` auf denselben Pfad                                                       |
+| **NextCloud über Worker**     | `GET` über den CORS-Proxy       | `PUT` über den CORS-Proxy                                                      |
 
-NextCloud unterstützt zwei Zugänge: Benutzerkonto mit App-Passwort
+NextCloud unterstützt zwei direkte Zugänge: Benutzerkonto mit App-Passwort
 (`/remote.php/dav/files/<benutzer>/<pfad>`) oder öffentlicher Freigabelink
 (`/public.php/webdav/<pfad>`, Token als Benutzername).
 
 > **Hinweis zu NextCloud und CORS:** Der Browser blockiert WebDAV-Anfragen an eine
 > fremde Origin, solange die NextCloud keine passenden `Access-Control-Allow-Origin`-
-> Header sendet. Für den Betrieb unter GitHub Pages muss die Instanz das entsprechend
-> konfigurieren (oder hinter einem Reverse Proxy derselben Origin liegen).
+> Header sendet. GitHub Pages kann das nicht reparieren (reines statisches Hosting,
+> kein Server, der Header umschreiben könnte). Entweder konfiguriert die Instanz das
+> selbst (oder liegt hinter einem Reverse Proxy derselben Origin) – oder man nutzt
+> **NextCloud über Worker**: einen kleinen, kostenlosen Cloudflare Worker als
+> CORS-Proxy (`worker/`), der serverseitig mit dem NextCloud-Freigabelink spricht.
+> Die echten NextCloud-Zugangsdaten liegen dabei nur im Worker, nicht im Browser.
+> Setup: `worker/README.md`.
 
 Weitere Quellen (S3, SharePoint, …) lassen sich ergänzen, indem `WorkbookStorage`
 implementiert wird – die Views und der Zustand müssen dafür nicht angefasst werden.

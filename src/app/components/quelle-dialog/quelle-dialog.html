@@ -35,65 +35,97 @@
 
     <mat-tab label="NextCloud">
       <div class="tab-inhalt">
-        <p class="erklaerung">
-          Lesen und Schreiben über WebDAV. Die NextCloud muss CORS-Anfragen dieser Adresse erlauben,
-          sonst blockiert der Browser den Zugriff.
-        </p>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Server-URL</mat-label>
-          <input
-            matInput
-            placeholder="https://cloud.example.org"
-            [ngModel]="konfig().serverUrl"
-            (ngModelChange)="setze('serverUrl', $event)"
-          />
-        </mat-form-field>
+        @if (konfig().modus === 'worker') {
+          <p class="erklaerung">
+            Lesen und Schreiben über einen Cloudflare-Worker als CORS-Proxy. Empfohlen für GitHub
+            Pages, wenn die NextCloud selbst keine passenden CORS-Header sendet – siehe
+            <code>worker/README.md</code> zum Einrichten.
+          </p>
+        } @else {
+          <p class="erklaerung">
+            Lesen und Schreiben über WebDAV. Die NextCloud muss CORS-Anfragen dieser Adresse
+            erlauben, sonst blockiert der Browser den Zugriff.
+          </p>
+        }
 
         <mat-form-field appearance="outline">
           <mat-label>Zugang</mat-label>
           <mat-select [ngModel]="konfig().modus" (ngModelChange)="setze('modus', $event)">
             <mat-option value="benutzer">Benutzerkonto (App-Passwort)</mat-option>
             <mat-option value="freigabe">Öffentlicher Freigabelink</mat-option>
+            <mat-option value="worker">Über Worker (CORS-Proxy)</mat-option>
           </mat-select>
         </mat-form-field>
 
-        @if (konfig().modus === 'benutzer') {
+        @if (konfig().modus === 'worker') {
           <mat-form-field appearance="outline">
-            <mat-label>Benutzername</mat-label>
+            <mat-label>Worker-URL</mat-label>
             <input
               matInput
-              [ngModel]="konfig().benutzer"
-              (ngModelChange)="setze('benutzer', $event)"
+              placeholder="https://ausbildungsplaner-nextcloud-proxy.example.workers.dev"
+              [ngModel]="konfig().workerUrl"
+              (ngModelChange)="setze('workerUrl', $event)"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Zugriffsschlüssel</mat-label>
+            <input
+              matInput
+              type="password"
+              autocomplete="off"
+              [ngModel]="konfig().workerSchluessel"
+              (ngModelChange)="setze('workerSchluessel', $event)"
             />
           </mat-form-field>
         } @else {
           <mat-form-field appearance="outline">
-            <mat-label>Freigabe-Token (Teil hinter /s/)</mat-label>
-            <input matInput [ngModel]="konfig().token" (ngModelChange)="setze('token', $event)" />
+            <mat-label>Server-URL</mat-label>
+            <input
+              matInput
+              placeholder="https://cloud.example.org"
+              [ngModel]="konfig().serverUrl"
+              (ngModelChange)="setze('serverUrl', $event)"
+            />
+          </mat-form-field>
+
+          @if (konfig().modus === 'benutzer') {
+            <mat-form-field appearance="outline">
+              <mat-label>Benutzername</mat-label>
+              <input
+                matInput
+                [ngModel]="konfig().benutzer"
+                (ngModelChange)="setze('benutzer', $event)"
+              />
+            </mat-form-field>
+          } @else {
+            <mat-form-field appearance="outline">
+              <mat-label>Freigabe-Token (Teil hinter /s/)</mat-label>
+              <input matInput [ngModel]="konfig().token" (ngModelChange)="setze('token', $event)" />
+            </mat-form-field>
+          }
+
+          <mat-form-field appearance="outline">
+            <mat-label>Passwort</mat-label>
+            <input
+              matInput
+              type="password"
+              autocomplete="off"
+              [ngModel]="konfig().passwort"
+              (ngModelChange)="setze('passwort', $event)"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Pfad zur Arbeitsmappe</mat-label>
+            <input
+              matInput
+              placeholder="Ausbildung/Rahmenplan_2026.xlsx"
+              [ngModel]="konfig().pfad"
+              (ngModelChange)="setze('pfad', $event)"
+            />
           </mat-form-field>
         }
-
-        <mat-form-field appearance="outline">
-          <mat-label>Passwort</mat-label>
-          <input
-            matInput
-            type="password"
-            autocomplete="off"
-            [ngModel]="konfig().passwort"
-            (ngModelChange)="setze('passwort', $event)"
-          />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Pfad zur Arbeitsmappe</mat-label>
-          <input
-            matInput
-            placeholder="Ausbildung/Rahmenplan_2026.xlsx"
-            [ngModel]="konfig().pfad"
-            (ngModelChange)="setze('pfad', $event)"
-          />
-        </mat-form-field>
 
         <mat-slide-toggle [ngModel]="merken()" (ngModelChange)="merken.set($event)">
           Zugangsdaten in diesem Browser merken

@@ -13,30 +13,51 @@ export interface NextcloudKonfiguration {
   /**
    * `benutzer`: WebDAV über das persönliche Verzeichnis (Benutzername + App-Passwort).
    * `freigabe`: öffentlicher Freigabelink; `token` ist der Teil hinter `/s/`.
+   * `worker`: über den Cloudflare-Worker-CORS-Proxy (siehe `worker/README.md`) – die
+   * NextCloud-Zugangsdaten liegen dabei nur im Worker, nicht im Browser.
    */
-  modus: 'benutzer' | 'freigabe';
+  modus: 'benutzer' | 'freigabe' | 'worker';
   benutzer: string;
   /** App-Passwort bzw. Passwort der Freigabe (leer, wenn die Freigabe offen ist). */
   passwort: string;
   token: string;
+  /** URL des Cloudflare Workers, nur für `modus: 'worker'`. */
+  workerUrl: string;
+  /** Von der App im Header `X-Auth-Token` mitgeschickter Wert, nur für `modus: 'worker'`. */
+  workerSchluessel: string;
 }
 
 export function leereNextcloudKonfiguration(): NextcloudKonfiguration {
-  return { serverUrl: '', pfad: '', modus: 'benutzer', benutzer: '', passwort: '', token: '' };
+  return {
+    serverUrl: '',
+    pfad: '',
+    modus: 'benutzer',
+    benutzer: '',
+    passwort: '',
+    token: '',
+    workerUrl: '',
+    workerSchluessel: '',
+  };
 }
 
 /**
- * NextCloud über WebDAV.
+ * NextCloud über WebDAV – direkter Browser-Zugriff (`benutzer`/`freigabe`).
  *
  * Hinweis: Der Browser muss die Instanz per CORS erlauben. Ohne passende
  * `Access-Control-Allow-Origin`-Header der NextCloud (bzw. ohne Reverse Proxy
  * unter derselben Origin) scheitert der Zugriff aus einer GitHub-Pages-App.
+ * Für `modus: 'worker'` siehe stattdessen `NextcloudWorkerStorage`.
  */
 export class NextcloudStorage implements WorkbookStorage {
   readonly art = 'nextcloud' as const;
   readonly faehigkeiten: StorageFaehigkeiten = { direktesSpeichern: true, neuLaden: true };
 
   constructor(private readonly konfig: NextcloudKonfiguration) {
+    if (konfig.modus === 'worker') {
+      throw new StorageFehler(
+        'Interner Fehler: modus "worker" wird von NextcloudWorkerStorage behandelt, nicht von NextcloudStorage.',
+      );
+    }
     if (!konfig.serverUrl.trim()) {
       throw new StorageFehler('Es wurde keine Server-URL angegeben.');
     }

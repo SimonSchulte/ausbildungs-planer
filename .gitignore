@@ -8,8 +8,14 @@
 
 # Node
 /node_modules
+worker/node_modules
 npm-debug.log
 yarn-error.log
+
+# Cloudflare Worker
+.wrangler/
+worker/.wrangler/
+worker/.dev.vars
 
 # IDEs and editors
 .idea/
