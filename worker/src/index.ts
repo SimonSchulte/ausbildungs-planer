@@ -47,7 +47,10 @@ export default {
       return new Response(null, { status: 204, headers: corsHeader });
     }
 
-    if (request.headers.get('X-Auth-Token') !== env.APP_SHARED_SECRET) {
+    const erwartet = env.APP_SHARED_SECRET;
+    const empfangen = request.headers.get('X-Auth-Token');
+
+    if (empfangen !== erwartet) {
       // Diagnose-Header beim Einrichten: Sie unterscheiden „Secret gar nicht
       // gebunden“ (Tippfehler im Namen, Secret nur hochgeladen aber nie
       // deployt) von „Werte stimmen nicht überein“. Sie verraten keinen Wert,
@@ -55,8 +58,19 @@ export default {
       // kein echtes Geheimnis (siehe Sicherheitshinweis oben).
       return antwortMitCors('Nicht autorisiert.', 401, {
         ...corsHeader,
-        'X-Diagnose-Secret-Gebunden': env.APP_SHARED_SECRET ? 'ja' : 'nein',
-        'X-Diagnose-Token-Empfangen': request.headers.get('X-Auth-Token') ? 'ja' : 'nein',
+        'X-Diagnose-Secret-Gebunden': erwartet ? 'ja' : 'nein',
+        'X-Diagnose-Token-Empfangen': empfangen ? 'ja' : 'nein',
+        // Nur Längen und ob getrimmt gleich – nie die Werte selbst. Deckt den
+        // häufigsten Fall auf: ein unsichtbares Leerzeichen oder Newline, das
+        // beim Einfügen ins Dashboard mitkopiert wurde.
+        'X-Diagnose-Vergleich':
+          `laenge-erwartet=${erwartet?.length ?? 0},` +
+          `laenge-empfangen=${empfangen?.length ?? 0},` +
+          `nach-trim-gleich=${
+            erwartet !== undefined && empfangen !== null && erwartet.trim() === empfangen.trim()
+              ? 'ja'
+              : 'nein'
+          }`,
         // Nur die Namen der gebundenen Werte, nie deren Inhalt. Zeigt beim
         // Einrichten sofort, ob die Secrets überhaupt am Worker ankommen
         // (leer bzw. nur ALLOWED_ORIGIN = sie sind im falschen Bereich des
