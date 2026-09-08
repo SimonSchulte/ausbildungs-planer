@@ -54,14 +54,19 @@ wählen → NextCloud → Zugang: Über Worker (CORS-Proxy)“ eintragen.
 Zwei Fallen, wenn der Worker über **Workers Builds** statt lokal per
 `wrangler deploy` läuft:
 
-**1. `keep_vars` ist Pflicht.** Ein Deploy setzt die Bindings des Workers
-standardmäßig auf genau das, was in `wrangler.toml` steht – die im
-Dashboard gesetzten Secrets fallen dabei weg. Im Worker ist
-`env.APP_SHARED_SECRET` dann `undefined`, und **jede** Anfrage bekommt 401,
-egal mit welchem Schlüssel. Deshalb steht `keep_vars = true` in
-`wrangler.toml` (oberhalb von `[vars]`, sonst wird es als Variable statt als
-Konfigurationsschlüssel gelesen). Ob ein Secret tatsächlich ankommt, zeigt
-der Header `X-Diagnose-Secret-Gebunden` (siehe „401 einordnen“).
+**1. Secrets müssen am richtigen Worker hängen.** `wrangler.toml` ist beim
+Deploy die Quelle der Wahrheit für die Konfiguration: im Dashboard gesetzte
+**`vars`** überschreibt bzw. löscht ein Deploy, sofern nicht `keep_vars =
+true` gesetzt ist (steht deshalb in `wrangler.toml`, und zwar oberhalb von
+`[vars]` – darunter würde TOML es als Variable innerhalb dieser Tabelle
+lesen). **Secrets** bleiben davon unberührt, die überstehen einen Deploy.
+
+Sind die Secrets trotzdem nicht im `env`, hängen sie an der falschen Stelle
+– klassischerweise an einem zweiten, gleichnamig gemeinten Worker (etwa
+wenn `name` in `wrangler.toml` einmal von dem Namen abwich, unter dem der
+Git-verbundene Worker läuft) oder in den Build-Variablen statt bei den
+Laufzeit-Bindings. Was tatsächlich ankommt, zeigt der Header
+`X-Diagnose-Env-Schluessel` (siehe „401 einordnen“).
 
 **2. Nur der Produktions-Branch bedient die Produktions-URL.** Builds von
 einem Feature-Branch sind Preview-Deployments (`wrangler versions upload`)
