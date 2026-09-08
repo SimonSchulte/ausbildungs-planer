@@ -1,0 +1,15 @@
+name = "ausbildungsplaner-nextcloud-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# Nicht sensibel – die erlaubte Origin steht ohnehin im öffentlichen App-Quellcode.
+# Für lokale Entwicklung (`wrangler dev`) per `--var ALLOWED_ORIGIN:http://localhost:4200`
+# überschreiben oder hier temporär anpassen.
+[vars]
+ALLOWED_ORIGIN = "https://simonschulte.github.io"
+
+# Echte Zugangsdaten NIE hier eintragen – als Secrets setzen:
+#   wrangler secret put NEXTCLOUD_BASE_URL
+#   wrangler secret put NEXTCLOUD_SHARE_TOKEN
+#   wrangler secret put NEXTCLOUD_SHARE_PASSWORD
+#   wrangler secret put APP_SHARED_SECRET

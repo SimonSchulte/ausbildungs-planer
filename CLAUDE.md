@@ -47,6 +47,7 @@ src/app/
   data/wochentage.ts       Diensttag-Auswahlliste + Standardwert (Montag)
   utils/datum.ts           ISO ↔ Excel-Serial, Wochentag, Kalenderwochen, KW-Nummer
   storage/                 Persistenz-Abstraktion (WorkbookStorage) + Implementierungen
+                            (lokale Datei, NextCloud direkt, NextCloud über Worker-Proxy)
   services/
     excel-schema.ts        Spaltenüberschriften ↔ Feldnamen, Kreuzchen-Erkennung
     excel-lesen.ts         Arbeitsmappe → PlanDocument (inkl. Aufräumen der Alt-Layouts)
@@ -68,6 +69,16 @@ src/app/
 - **Persistenz ist abstrahiert.** Views und Store kennen nur `WorkbookStorage`
   (`laden`/`speichern` + `faehigkeiten`). Eine neue Quelle heißt: eine Klasse
   implementieren und im `QuelleDialog` anbieten – sonst nichts.
+- **NextCloud direkt scheitert an CORS, wenn die Instanz keine passenden
+  `Access-Control-Allow-Origin`-Header sendet – GitHub Pages kann das nicht
+  reparieren (reines statisches Hosting, kein Server, der Header umschreiben
+  könnte).** Deshalb gibt es zusätzlich `NextcloudWorkerStorage`
+  (`src/app/storage/nextcloud-worker.storage.ts`): sie spricht statt direkt mit
+  NextCloud mit einem eigenen Cloudflare Worker (`worker/`), der serverseitig
+  (ohne Browser-CORS-Beschränkung) mit dem NextCloud-Freigabelink spricht und
+  die Antwort mit eigenen CORS-Headern zurückgibt. Die echten NextCloud-
+  Zugangsdaten liegen dabei nur als Worker-Secret, nie im Browser. Setup und
+  Sicherheitshinweise: `worker/README.md`.
 - **Termine und Ideen sind derselbe Typ.** `Termin.datum === null` bedeutet Backlog.
   Dadurch nutzen Jahresplan und „Offene Ideen“ dieselbe Karte, denselben Dialog und
   dasselbe Excel-Schema.
