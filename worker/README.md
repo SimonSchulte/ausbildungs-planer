@@ -39,14 +39,14 @@ npx wrangler deploy
 ```
 
 Die Ausgabe nennt die Worker-URL, z. B.
-`https://ausbildungsplaner-nextcloud-proxy.<account>.workers.dev`. Diese URL
+`https://ausbildungs-planer.<account>.workers.dev`. Diese URL
 zusammen mit dem gewählten `APP_SHARED_SECRET` in der App unter „Quelle
 wählen → NextCloud → Zugang: Über Worker (CORS-Proxy)“ eintragen.
 
 ## 3. Verifizieren
 
 ```bash
-WORKER_URL="https://ausbildungsplaner-nextcloud-proxy.<account>.workers.dev"
+WORKER_URL="https://ausbildungs-planer.<account>.workers.dev"
 SECRET="<APP_SHARED_SECRET>"
 
 # Preflight
