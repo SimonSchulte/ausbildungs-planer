@@ -24,16 +24,41 @@ Passwort). Nicht mit einem Platzhalterwert füllen – dann würde der Worker
 diesen Text als tatsächliches Passwort an NextCloud schicken und die
 Anfrage schlägt fehl.
 
-## 2. Worker deployen
+## 2. Zugangsdaten hinterlegen (Secrets Store)
+
+Die Zugangsdaten liegen im kontoweiten **Secrets Store** von Cloudflare;
+`wrangler.toml` verweist per `[[secrets_store_secrets]]` nur darauf. Dadurch
+steht die Zuordnung reproduzierbar in der Konfiguration (jeder Deploy setzt
+dieselben Bindings), ohne dass ein Geheimnis ins Repository wandert.
+
+Im Dashboard unter **Account → Secrets Store** einen Store anlegen und dort
+eintragen:
+
+| Name                    | Wert                                      |
+| ----------------------- | ----------------------------------------- |
+| `APP_SHARED_SECRET`     | frei wählbar, z. B. `crypto.randomUUID()` |
+| `NEXTCLOUD_BASE_URL`    | z. B. `https://cloud.example.org`         |
+| `NEXTCLOUD_SHARE_TOKEN` | der Teil hinter `/s/`                     |
+
+Die Store-ID aus der Adresszeile in die drei `store_id`-Felder in
+`wrangler.toml` eintragen (sie ist nur eine Kennung, kein Geheimnis).
+
+> Von Hand im Dashboard am Worker angelegte Bindings funktionieren ebenfalls –
+> der Worker akzeptiert beide Formen. Sie sind aber unsichtbar für dieses
+> Repository und leicht am falschen Ort gesetzt: Die Karte „Variables and
+> secrets“ unter **Build** sieht genauso aus, ihre Werte erreichen den Worker
+> zur Laufzeit aber nie. Laufzeit-Bindings hängen am Worker unter
+> **Bindings → Add a binding**.
+
+## 3. Worker deployen
+
+Läuft der Worker über Workers Builds, genügt ein Push auf den verbundenen
+Branch. Lokal:
 
 ```bash
 cd worker
 npm install
 npx wrangler login          # einmalig, öffnet den Browser
-npx wrangler secret put NEXTCLOUD_BASE_URL       # z. B. https://cloud.example.org
-npx wrangler secret put NEXTCLOUD_SHARE_TOKEN    # der Teil hinter /s/
-npx wrangler secret put NEXTCLOUD_SHARE_PASSWORD # bei passwortloser Freigabe: Schritt weglassen
-npx wrangler secret put APP_SHARED_SECRET        # frei wählbar, z. B. per `openssl rand -hex 16`
 ```
 
 `ALLOWED_ORIGIN` steht als `[vars]` in `wrangler.toml` (Standard: die
@@ -76,7 +101,7 @@ und bekommen eigene Preview-URLs
 einer Änderung vor dem Merge also die Preview-URL aus dem
 Cloudflare-Kommentar am Pull Request verwenden.
 
-## 3. Verifizieren
+## 4. Verifizieren
 
 ```bash
 WORKER_URL="https://ausbildungs-planer.<account>.workers.dev"
@@ -97,30 +122,39 @@ curl -i -H "X-Auth-Token: falsch" "$WORKER_URL"
 
 ### 401 einordnen
 
-Jede 401-Antwort trägt zwei Diagnose-Header (sie verraten keinen Wert, nur
-ob überhaupt einer ankommt):
+Jede 401-Antwort trägt Diagnose-Header. Sie verraten nie einen Wert, nur ob
+und in welcher Länge einer ankommt:
 
-| Header                       | Bedeutung                                              |
-| ---------------------------- | ------------------------------------------------------ |
-| `X-Diagnose-Secret-Gebunden` | `nein` = `APP_SHARED_SECRET` fehlt im laufenden Worker |
-| `X-Diagnose-Token-Empfangen` | `nein` = die Anfrage kam ohne `X-Auth-Token` an        |
+| Header                       | Bedeutung                                                            |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `X-Diagnose-Secret-Gebunden` | `nein` = `APP_SHARED_SECRET` ist im laufenden Worker nicht auflösbar |
+| `X-Diagnose-Token-Empfangen` | `nein` = die Anfrage kam ohne `X-Auth-Token` an                      |
+| `X-Diagnose-Vergleich`       | Längen beider Seiten und ob sie nach dem Trimmen gleich wären        |
+| `X-Diagnose-Env-Schluessel`  | Namen aller gebundenen Werte                                         |
 
-`X-Diagnose-Secret-Gebunden: nein` heißt: das Secret ist im laufenden Worker
-gar nicht vorhanden – dann wird **jeder** Schlüssel abgelehnt, egal welcher.
-Ursachen: Tippfehler im Secret-Namen, oder die Version, die tatsächlich
-Traffic bekommt, wurde erzeugt, bevor das Secret gesetzt wurde (siehe
-Hinweis zu Workers Builds oben – `wrangler versions upload` lädt nur eine
-Version hoch, ohne sie auf Produktions-Traffic zu schalten).
+So liest man sie:
 
-Steht dort `ja` und es kommt trotzdem 401, stimmen schlicht die Werte nicht
-überein.
+- **`Secret-Gebunden: nein`** – der Schlüssel erreicht den Worker gar nicht,
+  dann wird **jeder** Wert abgelehnt. Steht in `X-Diagnose-Env-Schluessel`
+  nur `ALLOWED_ORIGIN`, fehlen sämtliche Bindings (falsche Dashboard-Karte
+  oder fehlender Store-Eintrag); fehlt nur dieser eine Name, hakt es allein
+  an ihm.
+- **`nach-trim-gleich=ja`** bei unterschiedlichen Längen – im hinterlegten
+  Wert steckt ein Leerzeichen oder Zeilenumbruch, typischerweise beim
+  Einfügen mitkopiert.
+- **`nach-trim-gleich=nein`** – die Werte sind tatsächlich verschieden.
 
 ## Sicherheitshinweis
 
-`APP_SHARED_SECRET` steht im öffentlichen Quellcode der App (jede
-statische GitHub-Pages-Seite ist für jeden einsehbar) und ist damit kein
-echtes Geheimnis. Es verhindert nur zufälligen Missbrauch durch Dritte, die
-die Worker-URL erraten, und lässt sich unabhängig vom NextCloud-Passwort
-jederzeit rotieren (`wrangler secret put APP_SHARED_SECRET` erneut
-ausführen). Echten Zugriffsschutz bietet ausschließlich die
-NextCloud-Freigabe selbst (Passwort, jederzeit widerrufbar).
+`APP_SHARED_SECRET` ist die **einzige** Hürde vor dem Worker – und der hat
+Lese- und Schreibzugriff auf die freigegebene Datei. Wer den Schlüssel und
+die Worker-URL kennt, kann den Rahmenplan lesen und überschreiben. Er gehört
+deshalb weder ins Repository noch in eine `[vars]`-Zeile, sondern in den
+Secrets Store (bzw. in ein Laufzeit-Binding am Worker).
+
+Eingegeben wird er in der App und liegt dann im localStorage des Browsers –
+also nicht im ausgelieferten Bundle, aber auch nicht besonders geschützt.
+Entsprechend gilt: nur an Leute weitergeben, die den Plan bearbeiten dürfen,
+und bei Verdacht rotieren (Wert im Secrets Store ersetzen, danach in der App
+neu eintragen). Die NextCloud-Freigabe selbst lässt sich unabhängig davon
+jederzeit widerrufen.
