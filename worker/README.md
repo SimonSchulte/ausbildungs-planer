@@ -49,6 +49,20 @@ Die Ausgabe nennt die Worker-URL, z. B.
 zusammen mit dem gewählten `APP_SHARED_SECRET` in der App unter „Quelle
 wählen → NextCloud → Zugang: Über Worker (CORS-Proxy)“ eintragen.
 
+### Secrets über das Cloudflare-Dashboard ändern
+
+Wenn der Worker über **Workers Builds** (Git-Integration, „Import a
+repository“) statt lokal per `wrangler deploy` läuft: ein Secret unter
+**Settings → Variables and Secrets** zu ändern, bindet den neuen Wert nicht
+sofort an die gerade aktive, bereits gebaute Version. Erst ein neuer
+Build-Durchlauf (ausgelöst durch einen neuen Commit auf dem verbundenen
+Branch) übernimmt den aktuellen Secret-Stand in die neu erzeugte Version.
+Ein reines „Retry deployment“ der alten Version reicht dafür **nicht** –
+das rollt dieselbe, bereits gebaute Version erneut aus. Nach einer
+Secret-Änderung also entweder auf den nächsten ohnehin anstehenden Commit
+warten oder gezielt einen neuen (auch trivialen) Commit auf den
+verbundenen Branch pushen, damit ein frischer Build läuft.
+
 ## 3. Verifizieren
 
 ```bash
