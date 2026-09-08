@@ -49,19 +49,27 @@ Die Ausgabe nennt die Worker-URL, z. B.
 zusammen mit dem gewählten `APP_SHARED_SECRET` in der App unter „Quelle
 wählen → NextCloud → Zugang: Über Worker (CORS-Proxy)“ eintragen.
 
-### Secrets über das Cloudflare-Dashboard ändern
+### Secrets und Workers Builds (Git-Integration)
 
-Wenn der Worker über **Workers Builds** (Git-Integration, „Import a
-repository“) statt lokal per `wrangler deploy` läuft: ein Secret unter
-**Settings → Variables and Secrets** zu ändern, bindet den neuen Wert nicht
-sofort an die gerade aktive, bereits gebaute Version. Erst ein neuer
-Build-Durchlauf (ausgelöst durch einen neuen Commit auf dem verbundenen
-Branch) übernimmt den aktuellen Secret-Stand in die neu erzeugte Version.
-Ein reines „Retry deployment“ der alten Version reicht dafür **nicht** –
-das rollt dieselbe, bereits gebaute Version erneut aus. Nach einer
-Secret-Änderung also entweder auf den nächsten ohnehin anstehenden Commit
-warten oder gezielt einen neuen (auch trivialen) Commit auf den
-verbundenen Branch pushen, damit ein frischer Build läuft.
+Zwei Fallen, wenn der Worker über **Workers Builds** statt lokal per
+`wrangler deploy` läuft:
+
+**1. `keep_vars` ist Pflicht.** Ein Deploy setzt die Bindings des Workers
+standardmäßig auf genau das, was in `wrangler.toml` steht – die im
+Dashboard gesetzten Secrets fallen dabei weg. Im Worker ist
+`env.APP_SHARED_SECRET` dann `undefined`, und **jede** Anfrage bekommt 401,
+egal mit welchem Schlüssel. Deshalb steht `keep_vars = true` in
+`wrangler.toml` (oberhalb von `[vars]`, sonst wird es als Variable statt als
+Konfigurationsschlüssel gelesen). Ob ein Secret tatsächlich ankommt, zeigt
+der Header `X-Diagnose-Secret-Gebunden` (siehe „401 einordnen“).
+
+**2. Nur der Produktions-Branch bedient die Produktions-URL.** Builds von
+einem Feature-Branch sind Preview-Deployments (`wrangler versions upload`)
+und bekommen eigene Preview-URLs
+(`https://<commit>-<worker>.<account>.workers.dev`); die eigentliche
+`https://<worker>.<account>.workers.dev` fassen sie nicht an. Zum Testen
+einer Änderung vor dem Merge also die Preview-URL aus dem
+Cloudflare-Kommentar am Pull Request verwenden.
 
 ## 3. Verifizieren
 
@@ -81,6 +89,26 @@ curl -i -X PUT -H "X-Auth-Token: $SECRET" --data-binary @Rahmenplan_2026.xlsx "$
 # Falscher Schlüssel → 401
 curl -i -H "X-Auth-Token: falsch" "$WORKER_URL"
 ```
+
+### 401 einordnen
+
+Jede 401-Antwort trägt zwei Diagnose-Header (sie verraten keinen Wert, nur
+ob überhaupt einer ankommt):
+
+| Header                       | Bedeutung                                              |
+| ---------------------------- | ------------------------------------------------------ |
+| `X-Diagnose-Secret-Gebunden` | `nein` = `APP_SHARED_SECRET` fehlt im laufenden Worker |
+| `X-Diagnose-Token-Empfangen` | `nein` = die Anfrage kam ohne `X-Auth-Token` an        |
+
+`X-Diagnose-Secret-Gebunden: nein` heißt: das Secret ist im laufenden Worker
+gar nicht vorhanden – dann wird **jeder** Schlüssel abgelehnt, egal welcher.
+Ursachen: Tippfehler im Secret-Namen, oder die Version, die tatsächlich
+Traffic bekommt, wurde erzeugt, bevor das Secret gesetzt wurde (siehe
+Hinweis zu Workers Builds oben – `wrangler versions upload` lädt nur eine
+Version hoch, ohne sie auf Produktions-Traffic zu schalten).
+
+Steht dort `ja` und es kommt trotzdem 401, stimmen schlicht die Werte nicht
+überein.
 
 ## Sicherheitshinweis
 

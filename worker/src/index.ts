@@ -48,7 +48,21 @@ export default {
     }
 
     if (request.headers.get('X-Auth-Token') !== env.APP_SHARED_SECRET) {
-      return antwortMitCors('Nicht autorisiert.', 401, corsHeader);
+      // Diagnose-Header beim Einrichten: Sie unterscheiden „Secret gar nicht
+      // gebunden“ (Tippfehler im Namen, Secret nur hochgeladen aber nie
+      // deployt) von „Werte stimmen nicht überein“. Sie verraten keinen Wert,
+      // nur ob überhaupt einer ankommt – und APP_SHARED_SECRET ist ohnehin
+      // kein echtes Geheimnis (siehe Sicherheitshinweis oben).
+      return antwortMitCors('Nicht autorisiert.', 401, {
+        ...corsHeader,
+        'X-Diagnose-Secret-Gebunden': env.APP_SHARED_SECRET ? 'ja' : 'nein',
+        'X-Diagnose-Token-Empfangen': request.headers.get('X-Auth-Token') ? 'ja' : 'nein',
+        // Nur die Namen der gebundenen Werte, nie deren Inhalt. Zeigt beim
+        // Einrichten sofort, ob die Secrets überhaupt am Worker ankommen
+        // (leer bzw. nur ALLOWED_ORIGIN = sie sind im falschen Bereich des
+        // Dashboards gelandet, z. B. als Build- statt Laufzeit-Variable).
+        'X-Diagnose-Env-Schluessel': Object.keys(env).sort().join(',') || '(keine)',
+      });
     }
 
     if (!ERLAUBTE_METHODEN.includes(request.method as (typeof ERLAUBTE_METHODEN)[number])) {
@@ -66,8 +80,7 @@ export default {
           Authorization: auth,
           ...(request.method === 'PUT'
             ? {
-                'Content-Type':
-                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
               }
             : {}),
         },
@@ -82,14 +95,13 @@ export default {
       statusText: antwort.statusText,
       headers: {
         ...corsHeader,
-        'Content-Type':
-          antwort.headers.get('Content-Type') ?? 'application/octet-stream',
+        'Content-Type': antwort.headers.get('Content-Type') ?? 'application/octet-stream',
       },
     });
   },
 };
 
-function baueCorsHeader(origin: string): HeadersInit {
+function baueCorsHeader(origin: string): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
@@ -99,6 +111,10 @@ function baueCorsHeader(origin: string): HeadersInit {
   };
 }
 
-function antwortMitCors(text: string, status: number, corsHeader: HeadersInit): Response {
+function antwortMitCors(
+  text: string,
+  status: number,
+  corsHeader: Record<string, string>,
+): Response {
   return new Response(text, { status, headers: { ...corsHeader, 'Content-Type': 'text/plain' } });
 }
