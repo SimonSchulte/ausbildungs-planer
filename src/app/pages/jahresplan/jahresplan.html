@@ -100,11 +100,13 @@
 
 @if (!store.hatDaten()) {
   <div class="willkommen">
-    <mat-icon class="gross">upload_file</mat-icon>
+    <mat-icon class="gross">cloud_sync</mat-icon>
     <h1>Rahmenplan öffnen</h1>
     <p>
-      Excel-Arbeitsmappe mit dem Blatt „Jahresplan“ laden – aus einer lokalen Datei oder aus
-      NextCloud. Die Mappe bleibt das führende Format; die App liest und schreibt sie direkt.
+      Excel-Arbeitsmappe mit dem Blatt „Jahresplan“ laden – am besten direkt aus NextCloud, damit
+      alle mit derselben, stets aktuellen Mappe arbeiten. Eine lokale Datei lässt sich alternativ
+      hochladen. Die Mappe bleibt in jedem Fall das führende Format; die App liest und schreibt sie
+      direkt.
     </p>
     <div class="willkommen-aktionen">
       <button matButton="filled" (click)="oeffnen()">

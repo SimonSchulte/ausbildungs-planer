@@ -2,39 +2,13 @@
 
 <mat-dialog-content class="inhalt">
   <mat-tab-group>
-    <mat-tab label="Excel-Datei">
+    <mat-tab label="NextCloud (empfohlen)">
       <div class="tab-inhalt">
-        <p class="erklaerung">
-          Die Arbeitsmappe wird ausschließlich im Browser verarbeitet – es werden keine Daten
-          hochgeladen.
+        <p class="erklaerung primaer">
+          Primärer Weg: Der Plan liegt zentral in NextCloud, alle greifen auf dieselbe, stets
+          aktuelle Mappe zu.
         </p>
 
-        @if (dateiZugriff) {
-          <button matButton="filled" type="button" (click)="dateiOeffnen()">
-            <mat-icon>folder_open</mat-icon>
-            Datei öffnen (mit Schreibzugriff)
-          </button>
-          <p class="hinweis">
-            Änderungen lassen sich damit direkt in dieselbe Datei zurückschreiben.
-          </p>
-          <div class="trenner"><span>oder</span></div>
-        }
-
-        <label class="datei-feld">
-          <input type="file" accept=".xlsx,.xlsm" (change)="dateiGewaehlt($event)" />
-          <span class="datei-knopf">
-            <mat-icon>upload_file</mat-icon>
-            Datei auswählen
-          </span>
-        </label>
-        <p class="hinweis">
-          Ohne Schreibzugriff wird beim Speichern eine neue Datei heruntergeladen.
-        </p>
-      </div>
-    </mat-tab>
-
-    <mat-tab label="NextCloud">
-      <div class="tab-inhalt">
         @if (konfig().modus === 'worker') {
           <p class="erklaerung">
             Lesen und Schreiben über einen Cloudflare-Worker als CORS-Proxy. Empfohlen für GitHub
@@ -51,9 +25,9 @@
         <mat-form-field appearance="outline">
           <mat-label>Zugang</mat-label>
           <mat-select [ngModel]="konfig().modus" (ngModelChange)="setze('modus', $event)">
+            <mat-option value="worker">Über Worker (CORS-Proxy, empfohlen)</mat-option>
             <mat-option value="benutzer">Benutzerkonto (App-Passwort)</mat-option>
             <mat-option value="freigabe">Öffentlicher Freigabelink</mat-option>
-            <mat-option value="worker">Über Worker (CORS-Proxy)</mat-option>
           </mat-select>
         </mat-form-field>
 
@@ -135,6 +109,37 @@
           <mat-icon>cloud_sync</mat-icon>
           Verbinden und laden
         </button>
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Lokale Datei">
+      <div class="tab-inhalt">
+        <p class="erklaerung">
+          Alternative, falls (noch) keine NextCloud zur Verfügung steht: Die Arbeitsmappe wird
+          ausschließlich im Browser verarbeitet – es werden keine Daten hochgeladen.
+        </p>
+
+        @if (dateiZugriff) {
+          <button matButton="filled" type="button" (click)="dateiOeffnen()">
+            <mat-icon>folder_open</mat-icon>
+            Datei öffnen (mit Schreibzugriff)
+          </button>
+          <p class="hinweis">
+            Änderungen lassen sich damit direkt in dieselbe Datei zurückschreiben.
+          </p>
+          <div class="trenner"><span>oder</span></div>
+        }
+
+        <label class="datei-feld">
+          <input type="file" accept=".xlsx,.xlsm" (change)="dateiGewaehlt($event)" />
+          <span class="datei-knopf">
+            <mat-icon>upload_file</mat-icon>
+            Datei auswählen
+          </span>
+        </label>
+        <p class="hinweis">
+          Ohne Schreibzugriff wird beim Speichern eine neue Datei heruntergeladen.
+        </p>
       </div>
     </mat-tab>
   </mat-tab-group>
