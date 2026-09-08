@@ -18,6 +18,12 @@ stehen im Kommentar am Kopf von `src/index.ts`.
 4. Aus dem Freigabelink (`https://cloud.example.org/s/AbCdEfGh123`) den Teil
    hinter `/s/` notieren – das ist `NEXTCLOUD_SHARE_TOKEN`.
 
+Hat die Freigabe kein Passwort, bleibt `NEXTCLOUD_SHARE_PASSWORD` einfach
+komplett ungesetzt (der Worker behandelt ein fehlendes Secret als leeres
+Passwort). Nicht mit einem Platzhalterwert füllen – dann würde der Worker
+diesen Text als tatsächliches Passwort an NextCloud schicken und die
+Anfrage schlägt fehl.
+
 ## 2. Worker deployen
 
 ```bash
@@ -26,7 +32,7 @@ npm install
 npx wrangler login          # einmalig, öffnet den Browser
 npx wrangler secret put NEXTCLOUD_BASE_URL       # z. B. https://cloud.example.org
 npx wrangler secret put NEXTCLOUD_SHARE_TOKEN    # der Teil hinter /s/
-npx wrangler secret put NEXTCLOUD_SHARE_PASSWORD # leer lassen (Enter), falls kein Passwort
+npx wrangler secret put NEXTCLOUD_SHARE_PASSWORD # bei passwortloser Freigabe: Schritt weglassen
 npx wrangler secret put APP_SHARED_SECRET        # frei wählbar, z. B. per `openssl rand -hex 16`
 ```
 

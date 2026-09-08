@@ -29,8 +29,8 @@ export interface Env {
   NEXTCLOUD_BASE_URL: string;
   /** Token der öffentlichen Freigabe (der Teil hinter /s/). */
   NEXTCLOUD_SHARE_TOKEN: string;
-  /** Passwort der Freigabe – leerer String, wenn die Freigabe kein Passwort hat. */
-  NEXTCLOUD_SHARE_PASSWORD: string;
+  /** Passwort der Freigabe – Secret weglassen, wenn die Freigabe kein Passwort hat. */
+  NEXTCLOUD_SHARE_PASSWORD?: string;
   /** Von der App im Header `X-Auth-Token` erwarteter Wert. */
   APP_SHARED_SECRET: string;
   /** Origin, die per CORS zugelassen wird, z. B. https://simonschulte.github.io */
@@ -56,7 +56,7 @@ export default {
     }
 
     const ziel = `${env.NEXTCLOUD_BASE_URL.replace(/\/+$/, '')}/public.php/webdav/`;
-    const auth = `Basic ${btoa(`${env.NEXTCLOUD_SHARE_TOKEN}:${env.NEXTCLOUD_SHARE_PASSWORD}`)}`;
+    const auth = `Basic ${btoa(`${env.NEXTCLOUD_SHARE_TOKEN}:${env.NEXTCLOUD_SHARE_PASSWORD ?? ''}`)}`;
 
     let antwort: Response;
     try {
