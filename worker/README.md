@@ -82,6 +82,26 @@ curl -i -X PUT -H "X-Auth-Token: $SECRET" --data-binary @Rahmenplan_2026.xlsx "$
 curl -i -H "X-Auth-Token: falsch" "$WORKER_URL"
 ```
 
+### 401 einordnen
+
+Jede 401-Antwort trägt zwei Diagnose-Header (sie verraten keinen Wert, nur
+ob überhaupt einer ankommt):
+
+| Header                       | Bedeutung                                              |
+| ---------------------------- | ------------------------------------------------------ |
+| `X-Diagnose-Secret-Gebunden` | `nein` = `APP_SHARED_SECRET` fehlt im laufenden Worker |
+| `X-Diagnose-Token-Empfangen` | `nein` = die Anfrage kam ohne `X-Auth-Token` an        |
+
+`X-Diagnose-Secret-Gebunden: nein` heißt: das Secret ist im laufenden Worker
+gar nicht vorhanden – dann wird **jeder** Schlüssel abgelehnt, egal welcher.
+Ursachen: Tippfehler im Secret-Namen, oder die Version, die tatsächlich
+Traffic bekommt, wurde erzeugt, bevor das Secret gesetzt wurde (siehe
+Hinweis zu Workers Builds oben – `wrangler versions upload` lädt nur eine
+Version hoch, ohne sie auf Produktions-Traffic zu schalten).
+
+Steht dort `ja` und es kommt trotzdem 401, stimmen schlicht die Werte nicht
+überein.
+
 ## Sicherheitshinweis
 
 `APP_SHARED_SECRET` steht im öffentlichen Quellcode der App (jede
