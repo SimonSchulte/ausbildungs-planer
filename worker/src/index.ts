@@ -11,33 +11,56 @@
  * spricht selbst (ohne CORS-Beschränkung, da kein Browser) mit dem
  * öffentlichen NextCloud-Freigabelink und schickt die Antwort mit eigenen,
  * passenden CORS-Headern zurück. Die echten NextCloud-Zugangsdaten
- * (Freigabe-Token + Passwort) liegen dabei nur hier als Worker-Secrets,
- * nie im Browser – anders als bei einer direkten WebDAV-Verbindung, bei der
- * der öffentliche Quellcode der App sie zwangsläufig im localStorage hält.
+ * (Freigabe-Token + Passwort) liegen dabei nur hier, nie im Browser – anders
+ * als bei einer direkten WebDAV-Verbindung, bei der die App sie im
+ * localStorage halten müsste.
  *
  * Sicherheitshinweis: Der Zugriffsschlüssel (`APP_SHARED_SECRET`), den die
- * App im `X-Auth-Token`-Header mitschickt, ist kein echtes Geheimnis – er
- * steht im öffentlichen Quellcode der App und ist damit für jeden lesbar,
- * der die Website öffnet. Er verhindert nur zufälligen Missbrauch durch
- * Dritte, die die Worker-URL erraten, und lässt sich unabhängig vom
- * NextCloud-Passwort rotieren. Echten Zugriffsschutz bietet nur die
- * NextCloud-Freigabe selbst (Passwort, Ablaufdatum, jederzeit widerrufbar).
+ * App im `X-Auth-Token`-Header mitschickt, ist die einzige Hürde vor diesem
+ * Worker – und der schreibt in die freigegebene Datei. Wer Schlüssel und
+ * Worker-URL kennt, kann den Rahmenplan lesen und überschreiben. Er gehört
+ * deshalb in den Secrets Store, nie in die Konfigurationsdatei. In der App
+ * wird er eingegeben und liegt dort im localStorage – nicht im ausgelieferten
+ * Bundle, aber auch nicht besonders geschützt.
  */
+
+/**
+ * Ein Zugangsdatum kann auf zwei Wegen am Worker ankommen: als Binding aus dem
+ * Secrets Store (ein Objekt mit `get()`, so deklariert es `wrangler.toml`) oder
+ * als klassisches, im Dashboard gesetztes Secret (schlicht ein String). Der
+ * Worker unterstützt beides, damit eine bestehende Einrichtung weiterläuft.
+ */
+type Zugangsdatum = string | SecretsStoreSecret | undefined;
 
 export interface Env {
   /** Basis-URL der NextCloud-Instanz, z. B. https://cloud.example.org */
-  NEXTCLOUD_BASE_URL: string;
+  NEXTCLOUD_BASE_URL: Zugangsdatum;
   /** Token der öffentlichen Freigabe (der Teil hinter /s/). */
-  NEXTCLOUD_SHARE_TOKEN: string;
-  /** Passwort der Freigabe – Secret weglassen, wenn die Freigabe kein Passwort hat. */
-  NEXTCLOUD_SHARE_PASSWORD?: string;
+  NEXTCLOUD_SHARE_TOKEN: Zugangsdatum;
+  /** Passwort der Freigabe – weglassen, wenn die Freigabe kein Passwort hat. */
+  NEXTCLOUD_SHARE_PASSWORD?: Zugangsdatum;
   /** Von der App im Header `X-Auth-Token` erwarteter Wert. */
-  APP_SHARED_SECRET: string;
+  APP_SHARED_SECRET: Zugangsdatum;
   /** Origin, die per CORS zugelassen wird, z. B. https://simonschulte.github.io */
   ALLOWED_ORIGIN: string;
 }
 
 const ERLAUBTE_METHODEN = ['GET', 'PUT'] as const;
+
+/**
+ * Löst ein Zugangsdatum zu seinem Wert auf. `undefined`, wenn es nicht gebunden
+ * ist oder der Eintrag im Secrets Store fehlt – `get()` wirft in dem Fall.
+ */
+async function leseZugangsdatum(quelle: Zugangsdatum): Promise<string | undefined> {
+  if (typeof quelle === 'string') {
+    return quelle;
+  }
+  try {
+    return await quelle?.get();
+  } catch {
+    return undefined;
+  }
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -47,15 +70,16 @@ export default {
       return new Response(null, { status: 204, headers: corsHeader });
     }
 
-    const erwartet = env.APP_SHARED_SECRET;
+    const erwartet = await leseZugangsdatum(env.APP_SHARED_SECRET);
     const empfangen = request.headers.get('X-Auth-Token');
 
-    if (empfangen !== erwartet) {
-      // Diagnose-Header beim Einrichten: Sie unterscheiden „Secret gar nicht
-      // gebunden“ (Tippfehler im Namen, Secret nur hochgeladen aber nie
-      // deployt) von „Werte stimmen nicht überein“. Sie verraten keinen Wert,
-      // nur ob überhaupt einer ankommt – und APP_SHARED_SECRET ist ohnehin
-      // kein echtes Geheimnis (siehe Sicherheitshinweis oben).
+    // `!erwartet` sperrt bewusst zu: Ohne hinterlegten Schlüssel darf nichts
+    // durchkommen, auch keine Anfrage ganz ohne Header.
+    if (!erwartet || empfangen !== erwartet) {
+      // Diagnose-Header beim Einrichten: Sie unterscheiden „Schlüssel gar
+      // nicht auflösbar“ (falsche Dashboard-Karte, fehlender Store-Eintrag)
+      // von „Werte stimmen nicht überein“. Sie geben nur Vorhandensein und
+      // Länge preis, nie den Wert selbst.
       return antwortMitCors('Nicht autorisiert.', 401, {
         ...corsHeader,
         'X-Diagnose-Secret-Gebunden': erwartet ? 'ja' : 'nein',
@@ -83,8 +107,26 @@ export default {
       return antwortMitCors('Methode nicht erlaubt.', 405, corsHeader);
     }
 
-    const ziel = `${env.NEXTCLOUD_BASE_URL.replace(/\/+$/, '')}/public.php/webdav/`;
-    const auth = `Basic ${btoa(`${env.NEXTCLOUD_SHARE_TOKEN}:${env.NEXTCLOUD_SHARE_PASSWORD ?? ''}`)}`;
+    const basisUrl = await leseZugangsdatum(env.NEXTCLOUD_BASE_URL);
+    const freigabeToken = await leseZugangsdatum(env.NEXTCLOUD_SHARE_TOKEN);
+    const freigabePasswort = (await leseZugangsdatum(env.NEXTCLOUD_SHARE_PASSWORD)) ?? '';
+
+    if (!basisUrl || !freigabeToken) {
+      const fehlend = [
+        basisUrl ? null : 'NEXTCLOUD_BASE_URL',
+        freigabeToken ? null : 'NEXTCLOUD_SHARE_TOKEN',
+      ]
+        .filter(Boolean)
+        .join(', ');
+      return antwortMitCors(
+        `Worker unvollständig konfiguriert: ${fehlend} fehlt.`,
+        500,
+        corsHeader,
+      );
+    }
+
+    const ziel = `${basisUrl.replace(/\/+$/, '')}/public.php/webdav/`;
+    const auth = `Basic ${btoa(`${freigabeToken}:${freigabePasswort}`)}`;
 
     let antwort: Response;
     try {

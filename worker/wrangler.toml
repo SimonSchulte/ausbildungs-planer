@@ -2,10 +2,9 @@ name = "ausbildungs-planer"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
-# Ohne diesen Schalter ersetzt ein Deploy die Bindings des Workers durch das,
-# was in dieser Datei steht – die im Dashboard gesetzten Secrets fallen dabei
-# weg und `env.APP_SHARED_SECRET` ist zur Laufzeit `undefined` (jede Anfrage
-# bekommt dann 401, egal mit welchem Schlüssel). `keep_vars` erhält sie.
+# Betrifft ausschließlich `vars`: Ohne diesen Schalter überschreibt bzw. löscht
+# ein Deploy die im Dashboard gesetzten Variablen, weil diese Datei die Quelle
+# der Wahrheit ist. Secrets sind davon nicht betroffen.
 # Achtung: muss oberhalb von `[vars]` stehen, sonst wird es als Variable
 # innerhalb dieser Tabelle gelesen statt als Konfigurationsschlüssel.
 keep_vars = true
@@ -16,8 +15,33 @@ keep_vars = true
 [vars]
 ALLOWED_ORIGIN = "https://simonschulte.github.io"
 
-# Echte Zugangsdaten NIE hier eintragen – als Secrets setzen:
-#   wrangler secret put NEXTCLOUD_BASE_URL
-#   wrangler secret put NEXTCLOUD_SHARE_TOKEN
-#   wrangler secret put NEXTCLOUD_SHARE_PASSWORD
-#   wrangler secret put APP_SHARED_SECRET
+# Zugangsdaten als Secrets-Store-Bindings: Die Werte liegen im kontoweiten
+# Secrets Store von Cloudflare, hier steht nur, welcher Eintrag unter welchem
+# Namen im Worker landet. Damit sind die Bindings reproduzierbar in der
+# Konfiguration festgehalten (jeder Deploy setzt sie identisch), ohne dass ein
+# Geheimnis ins Repository wandert. `store_id` ist nur eine Kennung.
+#
+# Von Hand im Dashboard angelegte Bindings sind dagegen unsichtbar für dieses
+# Repository – und leicht am falschen Ort gesetzt (die Build-Variablen sehen
+# genauso aus, erreichen den Worker zur Laufzeit aber nie).
+#
+# Die Einträge müssen im Store unter denselben Namen existieren.
+
+[[secrets_store_secrets]]
+binding = "APP_SHARED_SECRET"
+store_id = "36762a3b5aa547bea7f547b1d66c30ee"
+secret_name = "APP_SHARED_SECRET"
+
+[[secrets_store_secrets]]
+binding = "NEXTCLOUD_BASE_URL"
+store_id = "36762a3b5aa547bea7f547b1d66c30ee"
+secret_name = "NEXTCLOUD_BASE_URL"
+
+[[secrets_store_secrets]]
+binding = "NEXTCLOUD_SHARE_TOKEN"
+store_id = "36762a3b5aa547bea7f547b1d66c30ee"
+secret_name = "NEXTCLOUD_SHARE_TOKEN"
+
+# NEXTCLOUD_SHARE_PASSWORD ist bewusst nicht aufgeführt: Die Freigabe hat kein
+# Passwort, und der Worker behandelt ein fehlendes Binding als leeres Passwort.
+# Bei einer passwortgeschützten Freigabe hier einen vierten Block ergänzen.
