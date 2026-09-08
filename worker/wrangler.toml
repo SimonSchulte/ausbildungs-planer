@@ -2,6 +2,14 @@ name = "ausbildungs-planer"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
+# Ohne diesen Schalter ersetzt ein Deploy die Bindings des Workers durch das,
+# was in dieser Datei steht – die im Dashboard gesetzten Secrets fallen dabei
+# weg und `env.APP_SHARED_SECRET` ist zur Laufzeit `undefined` (jede Anfrage
+# bekommt dann 401, egal mit welchem Schlüssel). `keep_vars` erhält sie.
+# Achtung: muss oberhalb von `[vars]` stehen, sonst wird es als Variable
+# innerhalb dieser Tabelle gelesen statt als Konfigurationsschlüssel.
+keep_vars = true
+
 # Nicht sensibel – die erlaubte Origin steht ohnehin im öffentlichen App-Quellcode.
 # Für lokale Entwicklung (`wrangler dev`) per `--var ALLOWED_ORIGIN:http://localhost:4200`
 # überschreiben oder hier temporär anpassen.
