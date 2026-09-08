@@ -57,6 +57,11 @@ export default {
         ...corsHeader,
         'X-Diagnose-Secret-Gebunden': env.APP_SHARED_SECRET ? 'ja' : 'nein',
         'X-Diagnose-Token-Empfangen': request.headers.get('X-Auth-Token') ? 'ja' : 'nein',
+        // Nur die Namen der gebundenen Werte, nie deren Inhalt. Zeigt beim
+        // Einrichten sofort, ob die Secrets überhaupt am Worker ankommen
+        // (leer bzw. nur ALLOWED_ORIGIN = sie sind im falschen Bereich des
+        // Dashboards gelandet, z. B. als Build- statt Laufzeit-Variable).
+        'X-Diagnose-Env-Schluessel': Object.keys(env).sort().join(',') || '(keine)',
       });
     }
 
